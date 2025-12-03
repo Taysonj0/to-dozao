@@ -1,10 +1,9 @@
-package com.todo.todozao.model;
+package br.edu.ufape.todozao.model;
 
 import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "work_items")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
