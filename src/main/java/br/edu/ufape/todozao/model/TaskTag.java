@@ -5,7 +5,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "task_tags")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,16 +16,11 @@ public class TaskTag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "created_at")
-    private String createdAt;
-
-    // RELACIONAMENTOS
-
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "task_id")
     private Task task;
 
-    @ManyToOne
+    @ManyToOne(optional = false)
     @JoinColumn(name = "tag_id")
     private Tag tag;
 }

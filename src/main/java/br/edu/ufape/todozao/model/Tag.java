@@ -6,9 +6,12 @@ import lombok.*;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 @Entity
 @Table(name = "tags")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -18,18 +21,19 @@ public class Tag {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
+    @NotBlank(message = "O nome da tag é obrigatório")
+    @Column(nullable = false)
     private String name;
 
+    @NotBlank(message = "A escolha da cor é obrigatória")
     private String color;
 
-    @Column(name = "created_at")
-    private String createdAt;
-
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JsonIgnore
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @OneToMany(mappedBy = "tag", cascade = CascadeType.ALL)
-    private List<TaskTag> tagTasks;
+    @JsonIgnore
+    private List<TaskTag> taskTags;
 }
