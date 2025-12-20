@@ -1,17 +1,7 @@
 package br.edu.ufape.todozao.controller;
 
-<<<<<<< HEAD
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.RequestBody;
-=======
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpStatus;
-
->>>>>>> 7fce0fa2143972aba849ba28126864c0abb520ab
 
 import br.edu.ufape.todozao.dto.TaskDependencyCreateDTO;
 import br.edu.ufape.todozao.model.Task;
