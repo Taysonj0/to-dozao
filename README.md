@@ -70,8 +70,4 @@ Projeto backend em Java/Spring Boot para gerenciar Tasks, com funcionalidades de
 - Existem testes unitários e de integração em `src/test/java`.
 - Executar todos: `./mvnw test` (ou `.\mvnw.cmd test`).
 
-### 💡 Observações e recomendações
-- Foi adicionada uma **status default** em `Task` para evitar falhas de integridade em testes (`TASK_STATUS` não nulo).
-- Padrão de implementação: sempre criar `DTO → Service → Controller` e adicionar testes para cada comportamento crítico.
-- Se quiser, posso: 1) executar a suíte completa de testes e enviar resultados, 2) criar um teste que garante que `Task` tem `PENDING` por padrão, ou 3) abrir um PR com as mudanças já feitas.
 
