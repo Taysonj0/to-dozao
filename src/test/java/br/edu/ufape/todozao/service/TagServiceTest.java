@@ -6,6 +6,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.*;
+
 import br.edu.ufape.todozao.model.Tag;
 import br.edu.ufape.todozao.model.User;
 import br.edu.ufape.todozao.repository.TagRepository;

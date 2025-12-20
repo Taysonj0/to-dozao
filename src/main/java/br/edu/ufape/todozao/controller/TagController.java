@@ -2,6 +2,7 @@ package br.edu.ufape.todozao.controller;
 
 import br.edu.ufape.todozao.dto.TagCreateDTO;
 import br.edu.ufape.todozao.dto.TagResponseDTO;
+import br.edu.ufape.todozao.dto.TagCreateDTO;
 import br.edu.ufape.todozao.model.Tag;
 import br.edu.ufape.todozao.model.User;
 import br.edu.ufape.todozao.service.TagService;

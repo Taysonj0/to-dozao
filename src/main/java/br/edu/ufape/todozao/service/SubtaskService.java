@@ -1,79 +1,63 @@
 package br.edu.ufape.todozao.service;
 
-import br.edu.ufape.todozao.model.QSubtask;
+import br.edu.ufape.todozao.dto.SubtaskCreateDTO;
+import br.edu.ufape.todozao.dto.SubtaskResponseDTO;
+import br.edu.ufape.todozao.exception.BadRequestException;
+import br.edu.ufape.todozao.exception.SubtaskNotFoundException;
 import br.edu.ufape.todozao.model.Subtask;
+import br.edu.ufape.todozao.model.Task;
 import br.edu.ufape.todozao.repository.SubtaskRepository;
-import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Predicate;
+import br.edu.ufape.todozao.repository.TaskRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class SubtaskService {
-    private final SubtaskRepository repository;
 
-    public SubtaskService(SubtaskRepository repository){
-        this.repository = repository;
+    private final SubtaskRepository subtaskRepository;
+    private final TaskRepository taskRepository;
+
+    public SubtaskService(SubtaskRepository subtaskRepository, TaskRepository taskRepository) {
+        this.subtaskRepository = subtaskRepository;
+        this.taskRepository = taskRepository;
     }
 
-    public Subtask save(Subtask subtask) {
-        if (subtask.getCreatedAt() == null) {
-            subtask.setCreatedAt(LocalDateTime.now().toString());
-        }
-        return repository.save(subtask);
+    @Transactional
+    public SubtaskResponseDTO create(SubtaskCreateDTO dto) {
+        Task task = taskRepository.findById(dto.getTaskId())
+                .orElseThrow(() -> new BadRequestException("Task not found: " + dto.getTaskId()));
+
+        Subtask s = Subtask.builder()
+                .title(dto.getTitle())
+                .completed(false)
+                .createdAt(LocalDateTime.now().toString())
+                .task(task)
+                .build();
+
+        Subtask saved = subtaskRepository.save(s);
+
+        return new SubtaskResponseDTO(saved.getId(), saved.getTitle(), saved.isCompleted(), saved.getTask() != null ? saved.getTask().getId() : null);
     }
 
-    public Optional<Subtask> findById(Long id) {
-        return repository.findById(id);
+    public SubtaskResponseDTO getById(Long id) {
+        Subtask s = subtaskRepository.findById(id)
+                .orElseThrow(() -> new SubtaskNotFoundException(id));
+        return new SubtaskResponseDTO(s.getId(), s.getTitle(), s.isCompleted(), s.getTask() != null ? s.getTask().getId() : null);
     }
 
-    public List<Subtask> findByTaskId(Long taskId) {
-        return repository.findByTaskId(taskId);
+    public List<SubtaskResponseDTO> findByTaskId(Long taskId) {
+        List<Subtask> list = subtaskRepository.findByTaskId(taskId);
+        return list.stream().map(s -> new SubtaskResponseDTO(s.getId(), s.getTitle(), s.isCompleted(), s.getTask() != null ? s.getTask().getId() : null)).collect(Collectors.toList());
     }
 
-    public List<Subtask> findByTaskIdAndCompleted(Long taskId, boolean completed) {
-        return repository.findByTaskIdAndCompleted(taskId, completed);
-    }
-
-    public List<Subtask> findAll() {
-        return repository.findAll();
-    }
-
-    public Subtask update(Long id, Subtask subtask) {
-        Subtask existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Subtarefa não encontrada"));
-        
-        existing.setTitle(subtask.getTitle());
-        existing.setCompleted(subtask.isCompleted());
-        
-        return repository.save(existing);
-    }
-
+    @Transactional
     public void delete(Long id) {
-        repository.deleteById(id);
-    }
-
-    public List<Subtask> findCompletedSubtasks() {
-        QSubtask qSubtask = QSubtask.subtask;
-        Predicate predicate = qSubtask.completed.eq(true);
-        return (List<Subtask>) repository.findAll(predicate);
-    }
-
-    public List<Subtask> findByTitleContaining(String title) {
-        QSubtask qSubtask = QSubtask.subtask;
-        Predicate predicate = qSubtask.title.containsIgnoreCase(title);
-        return (List<Subtask>) repository.findAll(predicate);
-    }
-
-    public List<Subtask> findByTaskIdAndTitleContaining(Long taskId, String title) {
-        QSubtask qSubtask = QSubtask.subtask;
-        BooleanBuilder builder = new BooleanBuilder();
-        builder.and(qSubtask.task.id.eq(taskId));
-        builder.and(qSubtask.title.containsIgnoreCase(title));
-        return (List<Subtask>) repository.findAll(builder);
+        Subtask s = subtaskRepository.findById(id)
+                .orElseThrow(() -> new SubtaskNotFoundException(id));
+        subtaskRepository.delete(s);
     }
 }
-
