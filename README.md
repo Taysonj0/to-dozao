@@ -12,7 +12,7 @@ Projeto backend em Java/Spring Boot para gerenciar Tasks, com funcionalidades de
 ### 🖥 Interface do sistema
 
 <p align="center">
-  <img src="assets/dashboard.png" width="700">
+  <img src="assets/Loginpage.png" width="700">
 </p>
 
 ### 🛠 O que foi implementado
