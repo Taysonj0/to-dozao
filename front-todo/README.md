@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend Todo-zão
 
-## Getting Started
+Interface em Next.js para o projeto Todo-zão. Neste momento, a base entregue e estabilizada é a área autenticada de perfil, que servirá de referência para as próximas telas do time.
 
-First, run the development server:
+## Requisitos
+
+- Node.js 20+
+- npm
+- Backend do projeto rodando
+
+## Configuração
+
+Crie um arquivo `.env.local` a partir de `.env.example`.
+
+Variáveis disponíveis:
+
+- `NEXT_PUBLIC_API_URL`: URL base da API Spring Boot. Padrão: `http://localhost:8080`
+
+## Como rodar
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Aplicação disponível em `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Rotas principais
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `/login`: autenticação
+- `/cadastrar`: cadastro
+- `/perfil`: área pronta e integrada do usuário autenticado
+- `/home`: redireciona para `/perfil`
 
-## Learn More
+## Escopo já preparado
 
-To learn more about Next.js, take a look at the following resources:
+- Shell autenticado compartilhável com sidebar e ações no canto superior direito
+- Dropdown de perfil com opções “Meu perfil” e “Sair”
+- Painel de notificações no topo
+- Tela de perfil conectada ao backend
+- Persistência de nome, e-mail, headline, bio e localização
+- Fallback local quando a API não estiver disponível
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Reuso do shell
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+O shell autenticado está em `components/AppShell.tsx` e já aceita pontos de extensão para as próximas telas:
 
-## Deploy on Vercel
+- `title`: título principal da tela
+- `subtitle`: texto de apoio abaixo do título
+- `sectionLabel`: seção exibida no breadcrumb superior
+- `currentPageLabel`: página atual exibida no breadcrumb
+- `navItems`: itens da navegação lateral
+- `notificationItems`: mensagens do painel de notificações
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Com isso, novas páginas podem reaproveitar a estrutura visual sem duplicar cabeçalho, sidebar, avatar e menu superior.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contrato esperado com o backend
+
+- `POST /auth/login`
+- `GET /users/me/profile`
+- `PUT /users/me/profile`
+
+As chamadas autenticadas usam o token salvo em `localStorage` na chave `token`.
+
+## Observação para o time
+
+O componente de base para as próximas telas autenticadas é o shell já existente. As demais páginas podem reaproveitar a mesma estrutura visual e de navegação sem alterar a rota `/perfil`.
+
+## Checklist de handoff
+
+- Manter `/perfil` como referência visual e funcional da área autenticada
+- Reaproveitar `components/AppShell.tsx` ao criar novas telas internas
+- Preservar o contrato com `localStorage` na chave `token`
+- Preferir integração com endpoints autenticados no formato `/users/me/...`
+- Definir `NEXT_PUBLIC_API_URL` no ambiente local antes de integrar novas páginas
