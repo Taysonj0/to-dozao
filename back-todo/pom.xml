@@ -95,8 +95,8 @@
 							<artifactId>lombok</artifactId>
 						</path>
 					</annotationProcessorPaths>
-                    <source>8</source>
-                    <target>8</target>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
                 </configuration>
 			</plugin>
 			<plugin>

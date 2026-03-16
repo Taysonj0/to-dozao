@@ -12,6 +12,10 @@ interface LoginFormData {
   password: string;
 }
 
+interface LoginResponse {
+  token: string;
+}
+
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState<LoginFormData>({
     login: "",
@@ -34,9 +38,18 @@ const LoginPage: React.FC = () => {
         method: "POST",
         body: JSON.stringify({ login: formData.login, password: formData.password }),
       });
-      const text = await response.text();
-      if (!text) throw new Error("Resposta vazia do servidor");
-      localStorage.setItem("token", text);
+
+      if (!response.ok) {
+        throw new Error("Falha na autenticacao");
+      }
+
+      const data = (await response.json()) as LoginResponse;
+
+      if (!data.token) {
+        throw new Error("Token nao retornado pelo servidor");
+      }
+
+      localStorage.setItem("token", data.token);
       Swal.fire({
         toast: true,
         position: "top-end",

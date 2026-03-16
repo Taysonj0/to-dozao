@@ -7,7 +7,7 @@
 - Tayson Joel
 
 ### 📌 Visão Geral
-Projeto backend em Java/Spring Boot para gerenciar Tasks, com funcionalidades de histórico de alterações, subtasks, regras de recorrência e notificações. O código inclui camadas **Controller → Service → Repository**, DTOs para entrada/saída e tratamento centralizado de exceções.
+Projeto full stack para gerenciamento de tarefas, com backend em Java/Spring Boot e frontend em Next.js. O backend contém camadas **Controller → Service → Repository**, DTOs para entrada/saída, autenticação com JWT e tratamento centralizado de exceções. O frontend já possui fluxo de autenticação e a área de perfil pronta para servir de base às próximas telas do time.
 
 ### 🖥 Interface do sistema
 
@@ -34,10 +34,19 @@ Projeto backend em Java/Spring Boot para gerenciar Tasks, com funcionalidades de
 - Erros são mapeados para respostas HTTP apropriadas pelo `GlobalExceptionHandler`.
 
 ### 🚀 Como rodar o projeto (localmente)
-- Requisitos: **Java 21**, **Maven** (ou usar o wrapper `./mvnw` / `.\mvnw.cmd` no Windows).
-- Rodar testes: `./mvnw test` (Windows: `.\mvnw.cmd test`).
-- Rodar aplicação: `./mvnw spring-boot:run` (Windows: `.\mvnw.cmd spring-boot:run`).
-- Perfil de testes usa **H2** como banco em memória; em execução local configure a datasource em `application.properties` se necessário.
+- Backend:
+  - Requisitos: **Java 21** e Maven, ou o wrapper `./mvnw` / `.\mvnw.cmd`
+  - Rodar testes: `./mvnw test` (Windows: `.\mvnw.cmd test`)
+  - Rodar aplicação: `./mvnw spring-boot:run` (Windows: `.\mvnw.cmd spring-boot:run`)
+  - Rodar backend local com H2: `./mvnw spring-boot:run -Dspring-boot.run.profiles=dev` (Windows: `.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"`)
+  - Em desenvolvimento local, configure `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD` e opcionalmente `JWT_SECRET`
+- Frontend:
+  - Requisitos: **Node.js 20+**
+  - Em `front-todo`, instale dependências com `npm install`
+  - Crie `.env.local` a partir de `.env.example`
+  - Rode `npm run dev`
+  - Frontend padrão: `http://localhost:3000`
+  - Backend padrão consumido pelo frontend: `http://localhost:8080`
 
 ### 📦 Tecnologias e dependências principais
 - Linguagem: Java 21
@@ -51,6 +60,21 @@ Projeto backend em Java/Spring Boot para gerenciar Tasks, com funcionalidades de
 ### 🔁 Testes
 - Existem testes unitários e de integração em `src/test/java`.
 - Executar todos: `./mvnw test` (ou `.\mvnw.cmd test`).
+- Os testes de integração usam o perfil `test` com H2 em memória.
+
+### 👤 Perfil do usuário
+
+- Login retorna JWT em `POST /auth/login`
+- O frontend autenticado consome `GET /users/me/profile`
+- Atualização do perfil usa `PUT /users/me/profile`
+- Campos persistidos do perfil:
+  - `name`
+  - `email`
+  - `headline`
+  - `bio`
+  - `location`
+
+Essa estrutura já está pronta e pode ser usada pelo restante do time como referência visual e técnica para as demais telas autenticadas.
 
 ### 🔗 Endpoints principais e exemplos de payloads
 

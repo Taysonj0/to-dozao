@@ -48,6 +48,15 @@ public class User implements UserDetails {
 
     private String login;
 
+    @Column(length = 255)
+    private String headline;
+
+    @Column(length = 2000)
+    private String bio;
+
+    @Column(length = 120)
+    private String location;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
