@@ -64,9 +64,6 @@ type TaskDraft = {
   tagId: string;
 };
 
-const tasksStorageKey = "todozao-tasks";
-const tagsStorageKey = "todozao-tags";
-
 const statusOptions: Array<{ value: TaskStatusCode; label: string }> = [
   { value: "PENDING", label: "Pendente" },
   { value: "IN_PROGRESS", label: "Em andamento" },
@@ -75,48 +72,6 @@ const statusOptions: Array<{ value: TaskStatusCode; label: string }> = [
   { value: "OVERDUE", label: "Atrasada" },
 ];
 
-const defaultTags: TagItem[] = [
-  { id: "pessoal", name: "Pessoal", color: "#5b9bd5" },
-  { id: "trabalho", name: "Trabalho", color: "#2a4d7f" },
-  { id: "urgente", name: "Urgente", color: "#dc2626" },
-];
-
-const defaultTasks: TaskItem[] = [
-  {
-    id: 1,
-    title: "Revisar prioridades da semana",
-    description: "Atualize a lista de tarefas e confirme o foco da sprint atual.",
-    taskStatus: "PENDING",
-    tagId: "trabalho",
-    origin: "local",
-  },
-  {
-    id: 2,
-    title: "Organizar documentos pessoais",
-    description: "Separar comprovantes e arquivos importantes em uma pasta unica.",
-    taskStatus: "IN_PROGRESS",
-    tagId: "pessoal",
-    origin: "local",
-  },
-];
-
-function readFromStorage<T>(storageKey: string, fallback: T): T {
-  if (typeof window === "undefined") {
-    return fallback;
-  }
-
-  const saved = window.localStorage.getItem(storageKey);
-
-  if (!saved) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(saved) as T;
-  } catch {
-    return fallback;
-  }
-}
 
 function getCollectionItems<T>(payload: RemoteCollection<T>): T[] {
   if (Array.isArray(payload)) {
@@ -150,15 +105,6 @@ function normalizeStatusValue(status?: string | null): TaskStatusCode {
 
 function getStatusLabel(status: TaskStatusCode) {
   return statusOptions.find((option) => option.value === status)?.label ?? "Pendente";
-}
-
-function normalizeStoredTasks(tasks: TaskItem[]): TaskItem[] {
-  return tasks.map((task) => ({
-    ...task,
-    description: task.description || "Sem descricao informada.",
-    taskStatus: normalizeStatusValue(task.taskStatus),
-    origin: task.origin || "local",
-  }));
 }
 
 function normalizeTag(tag: RemoteTag): TagItem | null {
@@ -234,11 +180,11 @@ function toTaskPayload(task: { title: string; description: string; taskStatus: T
 }
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState<TaskItem[]>(() => normalizeStoredTasks(readFromStorage(tasksStorageKey, defaultTasks)));
-  const [tags, setTags] = useState<TagItem[]>(() => readFromStorage(tagsStorageKey, defaultTags));
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [tags, setTags] = useState<TagItem[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedTagId, setSelectedTagId] = useState<string>(defaultTags[0]?.id ?? "");
+  const [selectedTagId, setSelectedTagId] = useState<string>("");
   const [tagName, setTagName] = useState("");
   const [tagColor, setTagColor] = useState("#5b9bd5");
   const [loading, setLoading] = useState(true);
@@ -253,16 +199,10 @@ export default function TasksPage() {
   const [syncedTagIds, setSyncedTagIds] = useState<string[]>([]);
 
   useEffect(() => {
-    window.localStorage.setItem(tagsStorageKey, JSON.stringify(tags));
-
     if (!selectedTagId && tags[0]) {
       setSelectedTagId(tags[0].id);
     }
   }, [selectedTagId, tags]);
-
-  useEffect(() => {
-    window.localStorage.setItem(tasksStorageKey, JSON.stringify(tasks));
-  }, [tasks]);
 
   useEffect(() => {
     const loadRemoteData = async () => {
@@ -282,20 +222,15 @@ export default function TasksPage() {
         }
 
         if (!tasksResponse.ok) {
-          setMessage(
-            remoteTags.length > 0
-              ? "Tags sincronizadas com a API. As tasks salvas localmente continuam disponiveis neste navegador."
-              : "Nao foi possivel sincronizar com a API agora. Exibindo os dados salvos neste navegador.",
-          );
+          setTasks([]);
+          setMessage("Nao foi possivel carregar suas tasks agora. Tente novamente em instantes.");
           setLoading(false);
           return;
         }
 
         const taskPayload = await readJsonResponse<RemoteCollection<RemoteTask>>(tasksResponse);
-        const persistedTasks = normalizeStoredTasks(readFromStorage<TaskItem[]>(tasksStorageKey, defaultTasks));
-        const persistedTagByTaskId = new Map(persistedTasks.map((task) => [task.id, task.tagId]));
         const normalizedTasks = getCollectionItems(taskPayload || [])
-          .map((task) => normalizeTask(task, persistedTagByTaskId.get(task.id ?? -1) ?? null))
+          .map((task) => normalizeTask(task, null))
           .filter((task): task is TaskItem => task !== null);
 
         setTasks(normalizedTasks);
@@ -305,7 +240,9 @@ export default function TasksPage() {
             : "Suas tasks foram carregadas com sucesso.",
         );
       } catch {
-        setMessage("Sem conexao com a API no momento. Voce ainda pode criar, editar e filtrar suas tasks localmente.");
+        setTasks([]);
+        setTags([]);
+        setMessage("Sem conexao com a API no momento. Suas tasks nao puderam ser carregadas.");
       } finally {
         setLoading(false);
       }
@@ -338,48 +275,43 @@ export default function TasksPage() {
 
     setSaveState("saving");
 
-    const localTask: TaskItem = {
-      id: Date.now(),
-      title: title.trim(),
-      description: description.trim() || "Sem descricao informada.",
-      taskStatus: "PENDING",
-      tagId: selectedTagId || null,
-      origin: "local",
-    };
-
     const canSyncRemotely = !selectedTagId || syncedTagIds.includes(selectedTagId);
 
     if (!canSyncRemotely) {
-      setTasks((current) => [...current, localTask]);
-      setTitle("");
-      setDescription("");
       setSaveState("idle");
-      setMessage("Task criada localmente. Sincronize a tag na API para persistir esse vinculo no servidor.");
+      setMessage("Selecione uma tag valida para criar a task.");
       return;
     }
 
     try {
+      const draftTask = {
+        title: title.trim(),
+        description: description.trim() || "Sem descricao informada.",
+        taskStatus: "PENDING" as TaskStatusCode,
+        tagId: selectedTagId || null,
+      };
+
       const response = await api("/api/tasks", {
         method: "POST",
-        body: JSON.stringify(toTaskPayload(localTask)),
+        body: JSON.stringify(toTaskPayload(draftTask)),
       });
 
       if (response.ok) {
         const remoteTask = await readJsonResponse<RemoteTask>(response);
-        const normalizedTask = remoteTask ? normalizeTask(remoteTask, localTask.tagId) : null;
+        const normalizedTask = remoteTask ? normalizeTask(remoteTask, draftTask.tagId) : null;
 
-        setTasks((current) => [...current, normalizedTask ?? { ...localTask, origin: "remote" }]);
+        if (normalizedTask) {
+          setTasks((current) => [...current, normalizedTask]);
+        }
+        setTitle("");
+        setDescription("");
         setMessage("Task criada com sucesso.");
       } else {
-        setTasks((current) => [...current, localTask]);
-        setMessage("Task criada localmente. A API nao confirmou a operacao neste momento.");
+        setMessage("Nao foi possivel criar a task agora. Verifique os dados e tente novamente.");
       }
     } catch {
-      setTasks((current) => [...current, localTask]);
-      setMessage("Task criada localmente. Sem conexao com a API no momento.");
+      setMessage("Sem conexao com a API no momento. A task nao foi criada.");
     } finally {
-      setTitle("");
-      setDescription("");
       setSaveState("idle");
     }
   };
@@ -393,11 +325,6 @@ export default function TasksPage() {
 
     const previousTasks = tasks;
     setTasks((current) => current.filter((task) => task.id !== taskId));
-
-    if (taskToDelete.origin === "local") {
-      setMessage("Task local removida com sucesso.");
-      return;
-    }
 
     try {
       const response = await api(`/api/tasks/${taskId}`, {
@@ -455,13 +382,6 @@ export default function TasksPage() {
 
     setTasks((current) => current.map((task) => (task.id === taskId ? updatedTask : task)));
 
-    if (taskToUpdate.origin === "local") {
-      setEditingTaskId(null);
-      setEditDraft(null);
-      setMessage("Task local atualizada com sucesso.");
-      return;
-    }
-
     try {
       const response = await api(`/api/tasks/${taskId}`, {
         method: "PUT",
@@ -516,15 +436,6 @@ export default function TasksPage() {
 
       setTags((current) => current.map((tag) => (tag.id === editingTagId ? updatedTag : tag)));
 
-      if (!syncedTagIds.includes(editingTagId)) {
-        setMessage(`Tag ${normalizedName} atualizada localmente.`);
-        setEditingTagId(null);
-        setTagName("");
-        setTagColor("#5b9bd5");
-        setIsTagModalOpen(false);
-        return;
-      }
-
       try {
         const response = await api(`/api/tags/${editingTagId}`, {
           method: "PUT",
@@ -574,14 +485,10 @@ export default function TasksPage() {
             setMessage(`Tag ${nextTag.name} criada e sincronizada com a API.`);
           }
         } else {
-          setTags((current) => [localTag, ...current]);
-          setSelectedTagId(localTag.id);
-          setMessage(`Tag ${normalizedName} criada localmente. A API nao confirmou a operacao.`);
+          setMessage(`Nao foi possivel criar a tag ${normalizedName} agora.`);
         }
       } catch {
-        setTags((current) => [localTag, ...current]);
-        setSelectedTagId(localTag.id);
-        setMessage(`Tag ${normalizedName} criada localmente. Sem conexao com a API.`);
+        setMessage(`Sem conexao com a API no momento. A tag ${normalizedName} nao foi criada.`);
       }
     }
 
@@ -625,11 +532,6 @@ export default function TasksPage() {
 
     if (tagFilter === tagId) {
       setTagFilter("all");
-    }
-
-    if (!syncedTagIds.includes(tagId)) {
-      setMessage(`Tag ${tagToDelete.name} removida localmente com sucesso.`);
-      return;
     }
 
     try {
@@ -947,7 +849,7 @@ export default function TasksPage() {
                                 {linkedTag?.name || "Sem tag"}
                               </span>
                               <span className="profile-badge muted">
-                                {task.origin === "remote" ? "Sincronizada" : "Local"}
+                                Sincronizada
                               </span>
                             </div>
                           </>

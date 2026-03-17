@@ -2,6 +2,8 @@ package br.edu.ufape.todozao.controller;
 
 import br.edu.ufape.todozao.model.User;
 import br.edu.ufape.todozao.model.UserRole;
+import br.edu.ufape.todozao.repository.NotificationRepository;
+import br.edu.ufape.todozao.repository.TaskRepository;
 import br.edu.ufape.todozao.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,10 +32,18 @@ class UserControllerProfileIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private TaskRepository taskRepository;
+
+    @Autowired
+    private NotificationRepository notificationRepository;
+
     private User savedUser;
 
     @BeforeEach
     void setUp() {
+        notificationRepository.deleteAll();
+        taskRepository.deleteAll();
         userRepository.deleteAll();
 
         savedUser = userRepository.save(User.builder()

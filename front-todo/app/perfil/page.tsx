@@ -1,7 +1,7 @@
 "use client";
 
 import AppShell from "@/components/AppShell";
-import { api } from "@/app/services/api";
+import { api, profileStorageKey } from "@/app/services/api";
 import { BriefcaseBusiness, CheckCircle2, Mail, MapPin, PencilLine } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
@@ -23,8 +23,6 @@ const defaultProfile: ProfileForm = {
   location: "Garanhuns, PE",
 };
 
-const profileStorageKey = "todozao-profile";
-
 type RemoteProfileResponse = {
   id: number;
   name: string;
@@ -33,6 +31,10 @@ type RemoteProfileResponse = {
   headline?: string | null;
   bio?: string | null;
   location?: string | null;
+};
+
+type ValidationErrorResponse = {
+  errors?: Partial<Record<keyof Omit<ProfileForm, "id">, string>>;
 };
 
 function getInitials(name: string) {
@@ -45,25 +47,11 @@ function getInitials(name: string) {
 }
 
 export default function PerfilPage() {
-  const [form, setForm] = useState<ProfileForm>(() => {
-    if (typeof window === "undefined") {
-      return defaultProfile;
-    }
-
-    const saved = window.localStorage.getItem(profileStorageKey);
-    if (!saved) {
-      return defaultProfile;
-    }
-
-    try {
-      const parsed = JSON.parse(saved) as Partial<ProfileForm>;
-      return { ...defaultProfile, ...parsed };
-    } catch {
-      return defaultProfile;
-    }
-  });
+  const [form, setForm] = useState<ProfileForm>(defaultProfile);
   const [message, setMessage] = useState("Atualize seus dados pessoais para manter seu perfil sempre completo.");
+  const [loading, setLoading] = useState(true);
   const [saveState, setSaveState] = useState<"idle" | "saving">("idle");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof Omit<ProfileForm, "id">, string>>>({});
 
   useEffect(() => {
     const syncFromApi = async () => {
@@ -71,26 +59,26 @@ export default function PerfilPage() {
         const response = await api("/users/me/profile", { method: "GET" });
 
         if (!response.ok) {
+          setMessage("Nao foi possivel carregar seu perfil agora.");
           return;
         }
 
         const data = (await response.json()) as RemoteProfileResponse;
-        setForm((current) => {
-          const next = {
-            ...current,
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            headline: data.headline || current.headline,
-            bio: data.bio || current.bio,
-            location: data.location || current.location,
-          };
-          window.localStorage.setItem(profileStorageKey, JSON.stringify(next));
-          return next;
-        });
+        const next = {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          headline: data.headline || "",
+          bio: data.bio || "",
+          location: data.location || "",
+        };
+        setForm(next);
+        window.localStorage.setItem(profileStorageKey, JSON.stringify(next));
         setMessage("Seus dados foram carregados com sucesso.");
       } catch {
-        setMessage("Não foi possível sincronizar agora. Você ainda pode editar seu perfil normalmente.");
+        setMessage("Nao foi possivel sincronizar seu perfil agora.");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -113,7 +101,7 @@ export default function PerfilPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaveState("saving");
-    window.localStorage.setItem(profileStorageKey, JSON.stringify(form));
+    setFieldErrors({});
 
     try {
       const response = await api("/users/me/profile", {
@@ -141,15 +129,19 @@ export default function PerfilPage() {
         setForm(next);
         window.localStorage.setItem(profileStorageKey, JSON.stringify(next));
         setMessage("Seu perfil foi atualizado com sucesso.");
+        window.dispatchEvent(new Event("profile-updated"));
+      } else if (response.status === 400) {
+        const data = (await response.json()) as ValidationErrorResponse;
+        setFieldErrors(data.errors || {});
+        setMessage("Revise os campos destacados e tente novamente.");
       } else {
-        setMessage("Suas alterações foram salvas neste navegador, mas não puderam ser sincronizadas agora.");
+        setMessage("Nao foi possivel atualizar seu perfil agora.");
       }
     } catch {
-      setMessage("Suas alterações foram salvas neste navegador. Tente sincronizar novamente em instantes.");
+      setMessage("Sem conexao com a API no momento. Seu perfil nao foi atualizado.");
+    } finally {
+      setSaveState("idle");
     }
-
-    window.dispatchEvent(new Event("profile-updated"));
-    setSaveState("idle");
   };
 
   return (
@@ -227,15 +219,19 @@ export default function PerfilPage() {
             </div>
           </div>
 
+          {loading ? <p className="panel-subtitle section-spacer">Carregando perfil...</p> : null}
+
           <form className="profile-form section-spacer" onSubmit={handleSubmit}>
             <div className="profile-form-grid">
               <label className="label">
                 Nome
                 <input
                   className="input"
+                  disabled={loading || saveState === "saving"}
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
                 />
+                {fieldErrors.name ? <span className="panel-subtitle">{fieldErrors.name}</span> : null}
               </label>
 
               <label className="label">
@@ -243,27 +239,33 @@ export default function PerfilPage() {
                 <input
                   className="input"
                   type="email"
+                  disabled={loading || saveState === "saving"}
                   value={form.email}
                   onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
                 />
+                {fieldErrors.email ? <span className="panel-subtitle">{fieldErrors.email}</span> : null}
               </label>
 
               <label className="label">
                 Localização
                 <input
                   className="input"
+                  disabled={loading || saveState === "saving"}
                   value={form.location}
                   onChange={(event) => setForm((current) => ({ ...current, location: event.target.value }))}
                 />
+                {fieldErrors.location ? <span className="panel-subtitle">{fieldErrors.location}</span> : null}
               </label>
 
               <label className="label">
                 Apresentação
                 <input
                   className="input"
+                  disabled={loading || saveState === "saving"}
                   value={form.headline}
                   onChange={(event) => setForm((current) => ({ ...current, headline: event.target.value }))}
                 />
+                {fieldErrors.headline ? <span className="panel-subtitle">{fieldErrors.headline}</span> : null}
               </label>
             </div>
 
@@ -271,14 +273,16 @@ export default function PerfilPage() {
               Sobre você
               <textarea
                 className="textarea"
+                disabled={loading || saveState === "saving"}
                 value={form.bio}
                 onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))}
               />
+              {fieldErrors.bio ? <span className="panel-subtitle">{fieldErrors.bio}</span> : null}
             </label>
 
             <div className="profile-actions">
               <div className="profile-status-chip">Perfil preenchido em {completionPercentage}%</div>
-              <button type="submit" className="primary-button">
+              <button type="submit" className="primary-button" disabled={loading || saveState === "saving"}>
                 {saveState === "saving" ? "Salvando..." : "Salvar alterações"}
               </button>
             </div>

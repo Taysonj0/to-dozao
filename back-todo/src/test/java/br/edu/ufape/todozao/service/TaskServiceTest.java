@@ -5,7 +5,9 @@ import br.edu.ufape.todozao.model.Task;
 import br.edu.ufape.todozao.model.TaskStatus;
 import br.edu.ufape.todozao.model.User;
 import br.edu.ufape.todozao.model.Project;
+import br.edu.ufape.todozao.repository.TagRepository;
 import br.edu.ufape.todozao.repository.TaskRepository;
+import br.edu.ufape.todozao.repository.TaskTagRepository;
 import br.edu.ufape.todozao.repository.UserRepository;
 import br.edu.ufape.todozao.repository.ProjectRepository;
 import jakarta.validation.ConstraintViolation;
@@ -36,6 +38,12 @@ class TaskServiceTest {
 
     @Mock
     private ProjectRepository projectRepository;
+
+    @Mock
+    private TagRepository tagRepository;
+
+    @Mock
+    private TaskTagRepository taskTagRepository;
 
     @InjectMocks
     private TaskService taskService;
@@ -234,6 +242,8 @@ class TaskServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(projectRepository.findById(1L)).thenReturn(Optional.of(project));
         when(taskRepository.save(any(Task.class))).thenReturn(task);
+        when(taskTagRepository.findByTaskId(1L)).thenReturn(Optional.empty());
+        when(taskRepository.findById(1L)).thenReturn(Optional.of(task));
 
         TaskDTO result = taskService.createTask(validTaskDTO);
 

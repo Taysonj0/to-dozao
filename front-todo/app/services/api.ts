@@ -2,10 +2,12 @@ type LoginResponse = {
   token?: string;
 };
 
+export const profileStorageKey = "todozao-profile";
+
 const apiBaseUrl =
   (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080").replace(/\/$/, "");
 
-const getStoredToken = () => {
+export const getStoredToken = () => {
   if (typeof window === "undefined") {
     return null;
   }
@@ -34,6 +36,17 @@ const getStoredToken = () => {
   return null;
 };
 
+export const hasStoredToken = () => Boolean(getStoredToken());
+
+export const clearSession = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem("token");
+  window.localStorage.removeItem(profileStorageKey);
+};
+
 export const api = async (url: string, options: RequestInit = {}) => {
   const token = getStoredToken();
 
@@ -50,6 +63,10 @@ export const api = async (url: string, options: RequestInit = {}) => {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && typeof window !== "undefined") {
+    window.dispatchEvent(new Event("auth-expired"));
+  }
 
   return response;
 };

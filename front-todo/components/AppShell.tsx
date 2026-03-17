@@ -1,5 +1,6 @@
 "use client";
 
+import { api, clearSession, hasStoredToken, profileStorageKey } from "@/app/services/api";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -39,9 +40,16 @@ const defaultNavItems = [
 ];
 
 const defaultProfile: ProfileData = {
-  name: "João Moura",
-  email: "joao@todozao.app",
-  headline: "Atualize seus dados e mantenha sua identificação consistente na plataforma.",
+  name: "Usuário",
+  email: "",
+  headline: "Mantenha seus dados atualizados para navegar pelas áreas autenticadas.",
+};
+
+type RemoteProfileResponse = {
+  id: number;
+  name: string;
+  email: string;
+  headline?: string | null;
 };
 
 const defaultNotifications = [
@@ -72,12 +80,13 @@ export default function AppShell({
   const pathname = usePathname();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [profile, setProfile] = useState<ProfileData>(() => {
     if (typeof window === "undefined") {
       return defaultProfile;
     }
 
-    const savedProfile = window.localStorage.getItem("todozao-profile");
+    const savedProfile = window.localStorage.getItem(profileStorageKey);
 
     if (!savedProfile) {
       return defaultProfile;
@@ -96,40 +105,85 @@ export default function AppShell({
   });
 
   useEffect(() => {
-    const syncProfile = () => {
-      const savedProfile = window.localStorage.getItem("todozao-profile");
+    const redirectToLogin = () => {
+      clearSession();
+      setProfile(defaultProfile);
+      setProfileOpen(false);
+      setNotificationOpen(false);
+      setAuthReady(true);
+      router.replace("/login");
+    };
 
-      if (!savedProfile) {
-        setProfile(defaultProfile);
+    const syncProfile = async () => {
+      if (!hasStoredToken()) {
+        redirectToLogin();
         return;
       }
 
       try {
-        const parsed = JSON.parse(savedProfile) as Partial<ProfileData>;
-        setProfile({
+        const response = await api("/users/me/profile", { method: "GET" });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            return;
+          }
+
+          setAuthReady(true);
+          return;
+        }
+
+        const parsed = (await response.json()) as RemoteProfileResponse;
+        const nextProfile = {
           name: parsed.name || defaultProfile.name,
           email: parsed.email || defaultProfile.email,
           headline: parsed.headline || defaultProfile.headline,
-        });
+        };
+
+        setProfile(nextProfile);
+        window.localStorage.setItem(profileStorageKey, JSON.stringify(nextProfile));
       } catch {
         setProfile(defaultProfile);
+      } finally {
+        setAuthReady(true);
       }
     };
 
-    window.addEventListener("profile-updated", syncProfile);
+    const handleProfileUpdated = () => {
+      void syncProfile();
+    };
+
+    const handleAuthExpired = () => {
+      redirectToLogin();
+    };
+
+    void syncProfile();
+
+    window.addEventListener("profile-updated", handleProfileUpdated);
+    window.addEventListener("auth-expired", handleAuthExpired);
 
     return () => {
-      window.removeEventListener("profile-updated", syncProfile);
+      window.removeEventListener("profile-updated", handleProfileUpdated);
+      window.removeEventListener("auth-expired", handleAuthExpired);
     };
-  }, []);
+  }, [router]);
 
   const initials = useMemo(() => getInitials(profile.name), [profile.name]);
 
   const handleLogout = () => {
-    window.localStorage.removeItem("token");
+    clearSession();
     setProfileOpen(false);
-    router.push("/login");
+    router.replace("/login");
   };
+
+  if (!authReady) {
+    return (
+      <div className="app-stage">
+        <div className="app-shell" style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+          <p className="panel-subtitle">Validando sua sessão...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="app-stage">

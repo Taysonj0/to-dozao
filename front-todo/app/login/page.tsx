@@ -55,6 +55,7 @@ const LoginPage: React.FC = () => {
         throw new Error("Token nao retornado pelo servidor");
       }
 
+      localStorage.removeItem("todozao-profile");
       localStorage.setItem("token", data.token);
       Swal.fire({
         toast: true,

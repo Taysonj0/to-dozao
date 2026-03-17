@@ -47,6 +47,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
     }
 
+    @ExceptionHandler(UnauthorizedTaskAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedTaskAccessException(UnauthorizedTaskAccessException ex) {
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Acesso negado",
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
     @ExceptionHandler(InvalidTaskDependencyException.class)
     public ResponseEntity<ErrorResponse> handleInvalidTaskDependencyException(InvalidTaskDependencyException ex) {
         ErrorResponse error = new ErrorResponse(

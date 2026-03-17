@@ -4,9 +4,9 @@ import br.edu.ufape.todozao.dto.TaskDTO;
 import br.edu.ufape.todozao.model.TaskStatus;
 import br.edu.ufape.todozao.service.TaskService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,24 +16,27 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class TaskController {
 
-    @Autowired
-    private TaskService taskService;
+    private final TaskService taskService;
+
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
+    }
 
     @PostMapping
-    public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskDTO taskDTO) {
-        TaskDTO createdTask = taskService.createTask(taskDTO);
+    public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskDTO taskDTO, Authentication authentication) {
+        TaskDTO createdTask = taskService.createTaskForUser(taskDTO, authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdTask);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TaskDTO> getTaskById(@PathVariable Long id) {
-        TaskDTO taskDTO = taskService.getTaskById(id);
+    public ResponseEntity<TaskDTO> getTaskById(@PathVariable Long id, Authentication authentication) {
+        TaskDTO taskDTO = taskService.getTaskByIdForUser(id, authentication.getName());
         return ResponseEntity.ok(taskDTO);
     }
 
     @GetMapping
-    public ResponseEntity<List<TaskDTO>> getAllTasks() {
-        List<TaskDTO> tasks = taskService.getAllTasks();
+    public ResponseEntity<List<TaskDTO>> getAllTasks(Authentication authentication) {
+        List<TaskDTO> tasks = taskService.getTasksForUser(authentication.getName());
         return ResponseEntity.ok(tasks);
     }
 
@@ -50,20 +53,20 @@ public class TaskController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TaskDTO> updateTask(@PathVariable Long id, @Valid @RequestBody TaskDTO taskDTO) {
-        TaskDTO updatedTask = taskService.updateTask(id, taskDTO);
+    public ResponseEntity<TaskDTO> updateTask(@PathVariable Long id, @Valid @RequestBody TaskDTO taskDTO, Authentication authentication) {
+        TaskDTO updatedTask = taskService.updateTaskForUser(id, taskDTO, authentication.getName());
         return ResponseEntity.ok(updatedTask);
     }
 
     @PutMapping("/{id}/status/{status}")
-    public ResponseEntity<TaskDTO> changeTaskStatus(@PathVariable Long id, @PathVariable TaskStatus status) {
-        TaskDTO taskDTO = taskService.changeTaskStatus(id, status);
+    public ResponseEntity<TaskDTO> changeTaskStatus(@PathVariable Long id, @PathVariable TaskStatus status, Authentication authentication) {
+        TaskDTO taskDTO = taskService.changeTaskStatusForUser(id, status, authentication.getName());
         return ResponseEntity.ok(taskDTO);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        taskService.deleteTask(id);
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id, Authentication authentication) {
+        taskService.deleteTaskForUser(id, authentication.getName());
         return ResponseEntity.noContent().build();
     }
 }
