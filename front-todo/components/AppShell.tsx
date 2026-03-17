@@ -6,6 +6,7 @@ import {
   Bell,
   CircleUserRound,
   LogOut,
+  ListTodo,
   UserRound,
 } from "lucide-react";
 import { ReactNode, useEffect, useMemo, useState } from "react";
@@ -32,7 +33,10 @@ type ProfileData = {
   headline: string;
 };
 
-const defaultNavItems = [{ href: "/perfil", label: "Meu Perfil", icon: UserRound }];
+const defaultNavItems = [
+  { href: "/perfil", label: "Meu Perfil", icon: UserRound },
+  { href: "/tasks", label: "My Tasks", icon: ListTodo },
+];
 
 const defaultProfile: ProfileData = {
   name: "João Moura",

@@ -34,10 +34,16 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await api("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ login: formData.login, password: formData.password }),
-      });
+     const response = await api("/auth/login", {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        login: formData.login,
+        password: formData.password,
+      }),
+    });
 
       if (!response.ok) {
         throw new Error("Falha na autenticacao");
