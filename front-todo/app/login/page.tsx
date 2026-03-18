@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaLock, FaUser } from "react-icons/fa";
-import { api } from "../../app/services/api";
+import { api, clearSession, hasStoredToken } from "../../app/services/api";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import AuthLayout from "../../components/AuthLayout";
@@ -23,7 +23,17 @@ const LoginPage: React.FC = () => {
   });
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [sessionReady, setSessionReady] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (hasStoredToken()) {
+      router.replace("/home");
+      return;
+    }
+
+    setSessionReady(true);
+  }, [router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -55,7 +65,7 @@ const LoginPage: React.FC = () => {
         throw new Error("Token nao retornado pelo servidor");
       }
 
-      localStorage.removeItem("todozao-profile");
+      clearSession();
       localStorage.setItem("token", data.token);
       Swal.fire({
         toast: true,
@@ -73,6 +83,14 @@ const LoginPage: React.FC = () => {
     }
     setIsLoading(false);
   };
+
+  if (!sessionReady) {
+    return (
+      <AuthLayout activeItem="login">
+        <p style={{ fontSize: "14px", color: "#8a9ab5" }}>Validando sua sessão...</p>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout activeItem="login">

@@ -1,6 +1,16 @@
 "use client";
 
-import { api, clearSession, hasStoredToken, profileStorageKey } from "@/app/services/api";
+/* eslint-disable @next/next/no-img-element */
+
+import {
+  api,
+  clearSession,
+  hasStoredToken,
+  isInvalidAuthenticatedUserResponse,
+  profileStorageKey,
+  readApiErrorResponse,
+  resolveApiUrl,
+} from "@/app/services/api";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -32,17 +42,27 @@ type ProfileData = {
   name: string;
   email: string;
   headline: string;
+  avatarUrl: string;
+};
+
+type RemoteTask = {
+  id?: number;
+  title?: string | null;
+  name?: string | null;
+  taskStatus?: string | null;
+  status?: string | null;
 };
 
 const defaultNavItems = [
-  { href: "/perfil", label: "Meu Perfil", icon: UserRound },
   { href: "/tasks", label: "My Tasks", icon: ListTodo },
+  { href: "/perfil", label: "Meu Perfil", icon: UserRound },
 ];
 
 const defaultProfile: ProfileData = {
   name: "Usuário",
   email: "",
   headline: "Mantenha seus dados atualizados para navegar pelas áreas autenticadas.",
+  avatarUrl: "",
 };
 
 type RemoteProfileResponse = {
@@ -50,13 +70,42 @@ type RemoteProfileResponse = {
   name: string;
   email: string;
   headline?: string | null;
+  avatarUrl?: string | null;
 };
 
-const defaultNotifications = [
-  "Seu perfil pode ser atualizado a qualquer momento por esta tela.",
-  "As alterações salvas aqui refletem no menu superior.",
-  "Use uma headline curta para resumir sua função no projeto.",
-];
+function normalizeTaskStatus(status?: string | null) {
+  const value = (status || "").trim().toUpperCase();
+
+  if (value === "COMPLETED" || value === "CONCLUIDA" || value === "CONCLUÍDA") {
+    return "COMPLETED";
+  }
+
+  if (value === "CANCELLED" || value === "CANCELADA") {
+    return "CANCELLED";
+  }
+
+  if (value === "IN_PROGRESS" || value === "EM_ANDAMENTO" || value === "EM ANDAMENTO") {
+    return "IN_PROGRESS";
+  }
+
+  if (value === "OVERDUE" || value === "ATRASADA") {
+    return "OVERDUE";
+  }
+
+  return "PENDING";
+}
+
+function buildPendingTaskNotifications(tasks: RemoteTask[]) {
+  const pendingTasks = tasks.filter((task) => {
+    const status = normalizeTaskStatus(task.taskStatus || task.status);
+    return status !== "COMPLETED" && status !== "CANCELLED";
+  });
+
+  return pendingTasks.map((task) => {
+    const title = task.title || task.name || "Task sem título";
+    return `Task pendente: ${title}`;
+  });
+}
 
 function getInitials(name: string) {
   return name
@@ -74,13 +123,13 @@ export default function AppShell({
   sectionLabel = "Conta",
   currentPageLabel = "Perfil",
   navItems = defaultNavItems,
-  notificationItems = defaultNotifications,
 }: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [taskNotifications, setTaskNotifications] = useState<string[]>([]);
   const [profile, setProfile] = useState<ProfileData>(() => {
     if (typeof window === "undefined") {
       return defaultProfile;
@@ -98,11 +147,13 @@ export default function AppShell({
         name: parsed.name || defaultProfile.name,
         email: parsed.email || defaultProfile.email,
         headline: parsed.headline || defaultProfile.headline,
+        avatarUrl: parsed.avatarUrl || defaultProfile.avatarUrl,
       };
     } catch {
       return defaultProfile;
     }
   });
+  const [avatarImageFailed, setAvatarImageFailed] = useState(false);
 
   useEffect(() => {
     const redirectToLogin = () => {
@@ -121,10 +172,16 @@ export default function AppShell({
       }
 
       try {
-        const response = await api("/users/me/profile", { method: "GET" });
+        const [profileResponse, tasksResponse] = await Promise.all([
+          api("/users/me/profile", { method: "GET" }),
+          api("/api/tasks", { method: "GET" }),
+        ]);
 
-        if (!response.ok) {
-          if (response.status === 401) {
+        if (!profileResponse.ok) {
+          const errorPayload = await readApiErrorResponse(profileResponse);
+
+          if (profileResponse.status === 401 || isInvalidAuthenticatedUserResponse(profileResponse.status, errorPayload)) {
+            redirectToLogin();
             return;
           }
 
@@ -132,11 +189,26 @@ export default function AppShell({
           return;
         }
 
-        const parsed = (await response.json()) as RemoteProfileResponse;
+        if (!tasksResponse.ok) {
+          const errorPayload = await readApiErrorResponse(tasksResponse);
+
+          if (tasksResponse.status === 401 || isInvalidAuthenticatedUserResponse(tasksResponse.status, errorPayload)) {
+            redirectToLogin();
+            return;
+          }
+
+          setTaskNotifications([]);
+        } else {
+          const parsedTasks = (await tasksResponse.json()) as RemoteTask[];
+          setTaskNotifications(buildPendingTaskNotifications(parsedTasks));
+        }
+
+        const parsed = (await profileResponse.json()) as RemoteProfileResponse;
         const nextProfile = {
           name: parsed.name || defaultProfile.name,
           email: parsed.email || defaultProfile.email,
           headline: parsed.headline || defaultProfile.headline,
+          avatarUrl: parsed.avatarUrl || defaultProfile.avatarUrl,
         };
 
         setProfile(nextProfile);
@@ -168,6 +240,10 @@ export default function AppShell({
   }, [router]);
 
   const initials = useMemo(() => getInitials(profile.name), [profile.name]);
+  const avatarUrl = useMemo(() => resolveApiUrl(profile.avatarUrl), [profile.avatarUrl]);
+  useEffect(() => {
+    setAvatarImageFailed(false);
+  }, [avatarUrl]);
 
   const handleLogout = () => {
     clearSession();
@@ -189,39 +265,52 @@ export default function AppShell({
     <div className="app-stage">
       <div className="app-shell">
         <aside className="app-sidebar">
-          <div>
-            <div className="brand-row">
-              <div className="brand-mark">🏠</div>
-              <div className="brand-copy compact">
-                <h2 className="brand-title brand-title-small">Todo-zão</h2>
-                <p className="brand-subtitle brand-subtitle-small">Perfil e conta</p>
+          <div className="app-sidebar-inner">
+            <div>
+              <div className="brand-row">
+                <div className="brand-mark">🏠</div>
+                <div className="brand-copy compact">
+                  <h2 className="brand-title brand-title-small">Todo-zão</h2>
+                  <p className="brand-subtitle brand-subtitle-small">Perfil e conta</p>
+                </div>
               </div>
+
+              <nav className="nav-group" aria-label="Navegação principal">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+
+                  return (
+                    <Link href={item.href} key={item.href} className={`nav-item${isActive ? " active" : ""}`}>
+                      <span className="nav-icon">
+                        <Icon size={18} />
+                      </span>
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
 
-            <nav className="nav-group" aria-label="Navegação principal">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
-
-                return (
-                  <Link href={item.href} key={item.href} className={`nav-item${isActive ? " active" : ""}`}>
-                    <span className="nav-icon">
-                      <Icon size={18} />
-                    </span>
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="sidebar-footer">
-            <div className="sidebar-profile sidebar-profile-static">
-              <span className="sidebar-avatar">{initials}</span>
-              <span className="sidebar-profile-copy">
-                <strong>{profile.name}</strong>
-                <small>Perfil ativo</small>
-              </span>
+            <div className="sidebar-footer">
+              <div className="sidebar-profile sidebar-profile-static">
+                <span className="sidebar-avatar">
+                  {avatarUrl && !avatarImageFailed ? (
+                    <img
+                      src={avatarUrl}
+                      alt={`Foto de perfil de ${profile.name || "usuário"}`}
+                      className="avatar-image"
+                      onError={() => setAvatarImageFailed(true)}
+                    />
+                  ) : (
+                    <span className="avatar-fallback">{initials}</span>
+                  )}
+                </span>
+                <span className="sidebar-profile-copy">
+                  <strong>{profile.name}</strong>
+                  <small>Perfil ativo</small>
+                </span>
+              </div>
             </div>
           </div>
         </aside>
@@ -254,13 +343,19 @@ export default function AppShell({
                 {notificationOpen ? (
                   <div className="dropdown topbar-dropdown">
                     <h3>Notificações</h3>
-                    <p className="panel-subtitle">Atualizações rápidas sobre o seu perfil.</p>
+                    <p className="panel-subtitle">Tasks pendentes que precisam da sua atenção.</p>
                     <div className="dropdown-list">
-                      {notificationItems.map((item) => (
-                        <div key={item} className="dropdown-item" role="status">
-                          <span>{item}</span>
+                      {taskNotifications.length > 0 ? (
+                        taskNotifications.map((item) => (
+                          <div key={item} className="dropdown-item" role="status">
+                            <span>{item}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="dropdown-item" role="status">
+                          <span>Nenhuma task pendente no momento.</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 ) : null}
@@ -276,13 +371,35 @@ export default function AppShell({
                   }}
                   aria-label="Abrir menu do perfil"
                 >
-                  <span className="avatar tiny">{initials}</span>
+                  <span className="avatar tiny">
+                    {avatarUrl && !avatarImageFailed ? (
+                      <img
+                        src={avatarUrl}
+                        alt={`Foto de perfil de ${profile.name || "usuário"}`}
+                        className="avatar-image"
+                        onError={() => setAvatarImageFailed(true)}
+                      />
+                    ) : (
+                      <span className="avatar-fallback">{initials}</span>
+                    )}
+                  </span>
                 </button>
 
                 {profileOpen ? (
                   <div className="dropdown topbar-dropdown profile-dropdown">
                     <div className="inline-group" style={{ marginBottom: 12 }}>
-                      <span className="avatar">{initials}</span>
+                      <span className="avatar">
+                        {avatarUrl && !avatarImageFailed ? (
+                          <img
+                            src={avatarUrl}
+                            alt={`Foto de perfil de ${profile.name || "usuário"}`}
+                            className="avatar-image"
+                            onError={() => setAvatarImageFailed(true)}
+                          />
+                        ) : (
+                          <span className="avatar-fallback">{initials}</span>
+                        )}
+                      </span>
                       <div>
                         <h3>{profile.name}</h3>
                         <p>{profile.email}</p>

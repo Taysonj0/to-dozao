@@ -3,6 +3,7 @@ package br.edu.ufape.todozao.service;
 import br.edu.ufape.todozao.dto.UserProfileResponseDTO;
 import br.edu.ufape.todozao.dto.UserProfileUpdateDTO;
 import br.edu.ufape.todozao.model.User;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,4 +22,8 @@ public interface UserService {
     UserProfileResponseDTO atualizarPerfil(Long id, UserProfileUpdateDTO profile);
 
     UserProfileResponseDTO atualizarPerfilAtual(String login, UserProfileUpdateDTO profile);
+
+    UserProfileResponseDTO atualizarAvatarAtual(String login, MultipartFile file);
+
+    UserProfileResponseDTO removerAvatarAtual(String login);
 }

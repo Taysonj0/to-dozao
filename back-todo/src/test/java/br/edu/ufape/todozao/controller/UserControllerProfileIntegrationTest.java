@@ -11,12 +11,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,6 +59,7 @@ class UserControllerProfileIntegrationTest {
                 .headline("Responsável pelo perfil")
                 .bio("Bio inicial")
                 .location("Garanhuns, PE")
+                .avatarUrl("/uploads/avatars/joao.png")
                 .build());
     }
 
@@ -65,7 +70,8 @@ class UserControllerProfileIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(savedUser.getId()))
                 .andExpect(jsonPath("$.name").value("João Moura"))
-                .andExpect(jsonPath("$.headline").value("Responsável pelo perfil"));
+                .andExpect(jsonPath("$.headline").value("Responsável pelo perfil"))
+                .andExpect(jsonPath("$.avatarUrl").value("/uploads/avatars/joao.png"));
     }
 
     @Test
@@ -88,6 +94,30 @@ class UserControllerProfileIntegrationTest {
                 .andExpect(jsonPath("$.name").value("João Atualizado"))
                 .andExpect(jsonPath("$.email").value("joao.atualizado@todozao.app"))
                 .andExpect(jsonPath("$.headline").value("Nova headline"))
-                .andExpect(jsonPath("$.location").value("Recife, PE"));
+                .andExpect(jsonPath("$.location").value("Recife, PE"))
+                .andExpect(jsonPath("$.avatarUrl").value("/uploads/avatars/joao.png"));
+    }
+
+    @Test
+    void deveEnviarAvatarDoUsuarioAutenticado() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[]{1, 2, 3, 4});
+
+        mockMvc.perform(multipart("/users/me/avatar")
+                        .file(file)
+                        .with(request -> {
+                            request.setMethod("POST");
+                            return request;
+                        })
+                        .with(SecurityMockMvcRequestPostProcessors.user(savedUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarUrl", startsWith("/uploads/avatars/user-")));
+    }
+
+    @Test
+    void deveRemoverAvatarDoUsuarioAutenticado() throws Exception {
+        mockMvc.perform(delete("/users/me/avatar")
+                        .with(SecurityMockMvcRequestPostProcessors.user(savedUser)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.avatarUrl").isEmpty());
     }
 }

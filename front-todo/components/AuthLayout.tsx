@@ -100,7 +100,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
             {menuItems.map((item, i) => (
               <div
                 key={item.id}
-                onClick={() => router.push(`/${item.id}`)}
+                aria-disabled="true"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -112,7 +112,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
                   opacity: i === activeIndex ? 1 : 0.45,
                   fontSize: "16px",
                   fontWeight: i === activeIndex ? 600 : 400,
-                  cursor: "pointer",
+                  cursor: "not-allowed",
                   userSelect: "none",
                 }}
               >

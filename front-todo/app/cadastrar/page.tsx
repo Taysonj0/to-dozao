@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FaEnvelope,
   FaLock,
@@ -8,7 +8,7 @@ import {
   FaUser,
   FaUserTag,
 } from "react-icons/fa";
-import { api } from "../../app/services/api";
+import { api, hasStoredToken } from "../../app/services/api";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import AuthLayout from "@/components/AuthLayout";
@@ -32,7 +32,17 @@ const RegisterPage: React.FC = () => {
     role: "USER",
   });
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [sessionReady, setSessionReady] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (hasStoredToken()) {
+      router.replace("/home");
+      return;
+    }
+
+    setSessionReady(true);
+  }, [router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -120,6 +130,14 @@ const RegisterPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  if (!sessionReady) {
+    return (
+      <AuthLayout activeItem="register">
+        <p style={{ fontSize: "14px", color: "#8a9ab5" }}>Validando sua sessão...</p>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout activeItem="register">

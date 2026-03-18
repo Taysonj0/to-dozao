@@ -1,10 +1,12 @@
 "use client";
 
 import AppShell from "@/components/AppShell";
-import { api } from "@/app/services/api";
+import { api, readApiErrorResponse } from "@/app/services/api";
 import {
   CheckCircle2,
+  ChevronDown,
   Filter,
+  LoaderCircle,
   PencilLine,
   Plus,
   Save,
@@ -29,6 +31,7 @@ type TaskItem = {
   description: string;
   taskStatus: TaskStatusCode;
   tagId: string | null;
+  syncStatus: "synced" | "pending" | "error";
   origin: "remote" | "local";
 };
 
@@ -67,11 +70,81 @@ type TaskDraft = {
 const statusOptions: Array<{ value: TaskStatusCode; label: string }> = [
   { value: "PENDING", label: "Pendente" },
   { value: "IN_PROGRESS", label: "Em andamento" },
-  { value: "COMPLETED", label: "Concluida" },
+  { value: "COMPLETED", label: "Concluída" },
   { value: "CANCELLED", label: "Cancelada" },
   { value: "OVERDUE", label: "Atrasada" },
 ];
 
+function getCountLabel(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function parseHexColor(hexColor: string) {
+  const normalized = hexColor.replace("#", "");
+  const expanded = normalized.length === 3
+    ? normalized
+        .split("")
+        .map((character) => `${character}${character}`)
+        .join("")
+    : normalized;
+
+  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) {
+    return null;
+  }
+
+  return {
+    red: Number.parseInt(expanded.slice(0, 2), 16),
+    green: Number.parseInt(expanded.slice(2, 4), 16),
+    blue: Number.parseInt(expanded.slice(4, 6), 16),
+  };
+}
+
+function toRgba(hexColor: string, alpha: number) {
+  const parsed = parseHexColor(hexColor);
+
+  if (!parsed) {
+    return `rgba(91, 155, 213, ${alpha})`;
+  }
+
+  return `rgba(${parsed.red}, ${parsed.green}, ${parsed.blue}, ${alpha})`;
+}
+
+function getContrastingTextColor(hexColor: string) {
+  const parsed = parseHexColor(hexColor);
+
+  if (!parsed) {
+    return "#17324f";
+  }
+
+  const brightness = (parsed.red * 299 + parsed.green * 587 + parsed.blue * 114) / 1000;
+
+  return brightness > 160 ? "#17324f" : "#f8fbff";
+}
+
+function getTagButtonStyle(color: string, isActive: boolean) {
+  const parsed = parseHexColor(color);
+  const defaultTextColor = "#17324f";
+  const textColor = parsed ? (getContrastingTextColor(color) === "#f8fbff" ? defaultTextColor : color) : defaultTextColor;
+
+  return {
+    backgroundColor: isActive ? toRgba(color, 0.24) : toRgba(color, 0.14),
+    color: textColor,
+    border: isActive ? `2px solid ${color}` : `1px solid ${toRgba(color, 0.28)}`,
+    boxShadow: isActive ? `0 0 0 4px ${toRgba(color, 0.14)}` : "none",
+  };
+}
+
+function getSyncStatusLabel(syncStatus: TaskItem["syncStatus"]) {
+  if (syncStatus === "pending") {
+    return "Sincronizando";
+  }
+
+  if (syncStatus === "error") {
+    return "Erro na sincronização";
+  }
+
+  return "Sincronizada";
+}
 
 function getCollectionItems<T>(payload: RemoteCollection<T>): T[] {
   if (Array.isArray(payload)) {
@@ -105,6 +178,14 @@ function normalizeStatusValue(status?: string | null): TaskStatusCode {
 
 function getStatusLabel(status: TaskStatusCode) {
   return statusOptions.find((option) => option.value === status)?.label ?? "Pendente";
+}
+
+function getStatusChipClass(status: TaskStatusCode) {
+  if (status === "COMPLETED") {
+    return "tasks-status-chip tasks-status-chip-success";
+  }
+
+  return "tasks-status-chip";
 }
 
 function normalizeTag(tag: RemoteTag): TagItem | null {
@@ -145,6 +226,7 @@ function normalizeTask(task: RemoteTask, fallbackTagId: string | null): TaskItem
     description: task.description || task.details || "Sem descricao informada.",
     taskStatus: normalizeStatusValue(task.taskStatus || task.status),
     tagId: rawTagId,
+    syncStatus: "synced",
     origin: "remote",
   };
 }
@@ -197,12 +279,8 @@ export default function TasksPage() {
   const [tagFilter, setTagFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [syncedTagIds, setSyncedTagIds] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (!selectedTagId && tags[0]) {
-      setSelectedTagId(tags[0].id);
-    }
-  }, [selectedTagId, tags]);
+  const [createFieldErrors, setCreateFieldErrors] = useState<Partial<Record<keyof TaskDraft, string>>>({});
+  const [editFieldErrors, setEditFieldErrors] = useState<Partial<Record<keyof TaskDraft, string>>>({});
 
   useEffect(() => {
     const loadRemoteData = async () => {
@@ -239,7 +317,8 @@ export default function TasksPage() {
             ? "Tags e tasks foram carregadas com sucesso a partir da API."
             : "Suas tasks foram carregadas com sucesso.",
         );
-      } catch {
+      } catch (error) {
+        console.error("Falha ao carregar tags e tasks.", error);
         setTasks([]);
         setTags([]);
         setMessage("Sem conexao com a API no momento. Suas tasks nao puderam ser carregadas.");
@@ -264,14 +343,19 @@ export default function TasksPage() {
       }),
     [statusFilter, tagFilter, tasks],
   );
+  const isTaskListEmpty = !loading && tasks.length === 0;
+  const hasNoFilteredResults = !loading && tasks.length > 0 && filteredTasks.length === 0;
 
   const handleCreateTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!title.trim()) {
+      setCreateFieldErrors({ title: "Informe um titulo valido para criar a task." });
       setMessage("Informe um titulo antes de criar a task.");
       return;
     }
+
+    setCreateFieldErrors({});
 
     setSaveState("saving");
 
@@ -305,11 +389,15 @@ export default function TasksPage() {
         }
         setTitle("");
         setDescription("");
+        setCreateFieldErrors({});
         setMessage("Task criada com sucesso.");
       } else {
-        setMessage("Nao foi possivel criar a task agora. Verifique os dados e tente novamente.");
+        const errorPayload = await readApiErrorResponse(response);
+        setCreateFieldErrors((errorPayload?.errors as Partial<Record<keyof TaskDraft, string>>) || {});
+        setMessage(errorPayload?.message || "Nao foi possivel criar a task agora. Verifique os dados e tente novamente.");
       }
-    } catch {
+    } catch (error) {
+      console.error("Falha ao criar task.", error);
       setMessage("Sem conexao com a API no momento. A task nao foi criada.");
     } finally {
       setSaveState("idle");
@@ -338,7 +426,8 @@ export default function TasksPage() {
       }
 
       setMessage("Task removida com sucesso.");
-    } catch {
+    } catch (error) {
+      console.error("Falha ao excluir task.", error);
       setTasks(previousTasks);
       setMessage("A API nao respondeu ao excluir a task. A remocao foi revertida localmente.");
     }
@@ -347,18 +436,23 @@ export default function TasksPage() {
   const handleStartEditTask = (task: TaskItem) => {
     setEditingTaskId(task.id);
     setEditDraft(buildTaskDraft(task, tags[0]?.id ?? ""));
+    setEditFieldErrors({});
   };
 
   const handleCancelEditTask = () => {
     setEditingTaskId(null);
     setEditDraft(null);
+    setEditFieldErrors({});
   };
 
   const handleSaveTask = async (taskId: number) => {
     if (!editDraft || !editDraft.title.trim()) {
+      setEditFieldErrors({ title: "Informe um titulo valido para salvar a task." });
       setMessage("Informe um titulo valido para salvar a task.");
       return;
     }
+
+    setEditFieldErrors({});
 
     const previousTasks = tasks;
     const taskToUpdate = tasks.find((task) => task.id === taskId);
@@ -378,6 +472,7 @@ export default function TasksPage() {
       description: editDraft.description.trim() || "Sem descricao informada.",
       taskStatus: editDraft.taskStatus,
       tagId: editDraft.tagId || null,
+      syncStatus: "pending",
     };
 
     setTasks((current) => current.map((task) => (task.id === taskId ? updatedTask : task)));
@@ -389,8 +484,14 @@ export default function TasksPage() {
       });
 
       if (!response.ok) {
-        setTasks(previousTasks);
-        setMessage("Nao foi possivel salvar a edicao na API. As alteracoes foram revertidas.");
+        const errorPayload = await readApiErrorResponse(response);
+        setTasks(previousTasks.map((task) => (task.id === taskId ? { ...task, syncStatus: "error" } : task)));
+
+        if (response.status === 400 && errorPayload?.errors) {
+          setEditFieldErrors(errorPayload.errors as Partial<Record<keyof TaskDraft, string>>);
+        }
+
+        setMessage(errorPayload?.message || "Nao foi possivel salvar a edicao na API. As alteracoes foram revertidas.");
         return;
       }
 
@@ -404,8 +505,10 @@ export default function TasksPage() {
       setMessage("Task atualizada com sucesso.");
       setEditingTaskId(null);
       setEditDraft(null);
-    } catch {
-      setTasks(previousTasks);
+      setEditFieldErrors({});
+    } catch (error) {
+      console.error("Falha ao salvar task.", error);
+      setTasks(previousTasks.map((task) => (task.id === taskId ? { ...task, syncStatus: "error" } : task)));
       setMessage("A API nao respondeu ao tentar editar a task. As alteracoes foram revertidas.");
     }
   };
@@ -456,7 +559,8 @@ export default function TasksPage() {
         }
 
         setMessage(`Tag ${normalizedName} atualizada com sucesso.`);
-      } catch {
+      } catch (error) {
+        console.error("Falha ao atualizar tag.", error);
         setTags(previousTags);
         setMessage("A API nao respondeu ao atualizar a tag. As alteracoes foram revertidas.");
         return;
@@ -487,7 +591,8 @@ export default function TasksPage() {
         } else {
           setMessage(`Nao foi possivel criar a tag ${normalizedName} agora.`);
         }
-      } catch {
+      } catch (error) {
+        console.error("Falha ao criar tag.", error);
         setMessage(`Sem conexao com a API no momento. A tag ${normalizedName} nao foi criada.`);
       }
     }
@@ -549,7 +654,8 @@ export default function TasksPage() {
 
       setSyncedTagIds((current) => current.filter((id) => id !== tagId));
       setMessage(`Tag ${tagToDelete.name} removida com sucesso.`);
-    } catch {
+    } catch (error) {
+      console.error("Falha ao excluir tag.", error);
       setTags(previousTags);
       setTasks(previousTasks);
       if (selectedTagId === fallbackTagId) {
@@ -557,6 +663,11 @@ export default function TasksPage() {
       }
       setMessage("A API nao respondeu ao excluir a tag. As alteracoes foram revertidas.");
     }
+  };
+
+  const handleSelectSidebarTag = (tagId: string) => {
+    setSelectedTagId(tagId);
+    setTagFilter((current) => (current === tagId ? "all" : tagId));
   };
 
   const handleCloseTagModal = () => {
@@ -583,10 +694,10 @@ export default function TasksPage() {
           <section className="surface-panel tasks-summary-card">
             <div className="panel-header compact-header">
               <div>
-                <p className="eyebrow tasks-eyebrow">Visao geral</p>
+                <p className="eyebrow tasks-eyebrow">VISÃO GERAL</p>
                 <h3 className="panel-title">Resumo das tasks</h3>
               </div>
-              <span className="profile-badge">{tasks.length} itens</span>
+              <span className="profile-badge">{getCountLabel(tasks.length, "item", "itens")}</span>
             </div>
 
             <div className="tasks-kpi-grid section-spacer">
@@ -596,12 +707,12 @@ export default function TasksPage() {
               </div>
               <div className="tasks-kpi-card">
                 <strong>{completedCount}</strong>
-                <span>Concluidas</span>
+                <span>Concluídas</span>
               </div>
             </div>
 
             <div className="subtle-list">
-              <div className="subtle-list-item">
+              <div className="subtle-list-item subtle-list-item-centered">
                 <CheckCircle2 size={16} /> {message}
               </div>
             </div>
@@ -611,7 +722,7 @@ export default function TasksPage() {
             <div className="panel-header compact-header">
               <div>
                 <p className="eyebrow tasks-eyebrow">Tags</p>
-                <h3 className="panel-title">Organizacao por categoria</h3>
+                <h3 className="panel-title">Organização por categoria</h3>
               </div>
 
               <button type="button" className="ghost-button" onClick={handleOpenCreateTagModal}>
@@ -624,10 +735,17 @@ export default function TasksPage() {
 
               {tags.map((tag) => (
                 <div key={tag.id} className="tasks-tag-item">
-                  <div className="tasks-tag-row">
+                  <button
+                    type="button"
+                    className={`tasks-tag-row${tagFilter === tag.id ? " is-active" : ""}`}
+                    onClick={() => handleSelectSidebarTag(tag.id)}
+                    aria-pressed={tagFilter === tag.id}
+                    style={getTagButtonStyle(tag.color, tagFilter === tag.id)}
+                  >
                     <span className="tasks-tag-dot" style={{ backgroundColor: tag.color }} />
                     <span>{tag.name}</span>
-                  </div>
+                    {tagFilter === tag.id ? <span className="tasks-tag-active-badge">Ativa</span> : null}
+                  </button>
 
                   <div className="tasks-tag-actions">
                     <button type="button" className="ghost-button tasks-mini-button" onClick={() => handleStartEditTag(tag)}>
@@ -657,46 +775,68 @@ export default function TasksPage() {
               <label className="label">
                 Titulo da task
                 <input
-                  className="input"
+                  className={`input${createFieldErrors.title ? " input-error" : ""}`}
                   value={title}
-                  onChange={(event) => setTitle(event.target.value)}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    if (createFieldErrors.title && event.target.value.trim()) {
+                      setCreateFieldErrors((current) => ({ ...current, title: undefined }));
+                    }
+                  }}
                   placeholder="Ex.: Revisar backlog da sprint"
+                  aria-invalid={Boolean(createFieldErrors.title)}
                 />
+                {createFieldErrors.title ? <span className="panel-subtitle form-error-text">{createFieldErrors.title}</span> : null}
               </label>
 
               <label className="label">
                 Tag
-                <select
-                  className="input"
-                  value={selectedTagId}
-                  onChange={(event) => setSelectedTagId(event.target.value)}
-                >
-                  <option value="">Sem tag</option>
-                  {tags.map((tag) => (
-                    <option key={tag.id} value={tag.id}>
-                      {tag.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="tasks-select-field">
+                  <select
+                    className="input tasks-select-input"
+                    value={selectedTagId}
+                    onChange={(event) => setSelectedTagId(event.target.value)}
+                  >
+                    <option value="">Selecione uma tag (opcional)</option>
+                    {tags.map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} />
+                </div>
               </label>
             </div>
 
             <label className="label">
-              Descricao
+              Descrição
               <textarea
-                className="textarea"
+                className={`textarea tasks-description-textarea${createFieldErrors.description ? " input-error" : ""}`}
                 value={description}
-                onChange={(event) => setDescription(event.target.value)}
+                onChange={(event) => {
+                  setDescription(event.target.value);
+                  if (createFieldErrors.description) {
+                    setCreateFieldErrors((current) => ({ ...current, description: undefined }));
+                  }
+                }}
                 placeholder="Inclua contexto rapido para essa task."
               />
+              {createFieldErrors.description ? <span className="panel-subtitle form-error-text">{createFieldErrors.description}</span> : null}
             </label>
 
             <div className="tasks-form-actions">
-              <button type="button" className="ghost-button" onClick={handleOpenCreateTagModal}>
+              <button type="button" className="ghost-button tasks-secondary-action" onClick={handleOpenCreateTagModal}>
                 <Tags size={16} /> Criar tag
               </button>
-              <button type="submit" className="primary-button">
-                {saveState === "saving" ? "Criando task..." : "Criar task"}
+              <button type="submit" className="primary-button" disabled={saveState === "saving"} aria-busy={saveState === "saving"}>
+                {saveState === "saving" ? (
+                  <>
+                    <LoaderCircle size={16} className="button-spinner" /> Criando task...
+                  </>
+                ) : (
+                  "Criar task"
+                )}
               </button>
             </div>
           </form>
@@ -704,7 +844,7 @@ export default function TasksPage() {
           <div className="tasks-list-block section-spacer">
             <div className="panel-header compact-header">
               <h3 className="panel-title">Lista de tasks</h3>
-              {!loading ? <span className="profile-badge muted">{filteredTasks.length} visiveis</span> : null}
+              {!loading ? <span className="profile-badge muted">{getCountLabel(filteredTasks.length, "visível", "visíveis")}</span> : null}
             </div>
 
             <div className="tasks-filter-grid section-spacer">
@@ -741,7 +881,13 @@ export default function TasksPage() {
 
             {loading ? <p className="panel-subtitle section-spacer">Carregando tarefas...</p> : null}
 
-            {!loading && filteredTasks.length === 0 ? (
+            {isTaskListEmpty ? (
+              <div className="tasks-empty-state section-spacer">
+                <Tag size={18} /> Nenhuma tarefa encontrada. Que tal criar sua primeira task?
+              </div>
+            ) : null}
+
+            {hasNoFilteredResults ? (
               <div className="tasks-empty-state section-spacer">
                 <Tag size={18} /> Nenhuma task encontrada com os filtros atuais.
               </div>
@@ -754,15 +900,15 @@ export default function TasksPage() {
                   const isEditing = editingTaskId === task.id && editDraft !== null;
 
                   return (
-                    <article key={task.id} className="tasks-list-item">
+                    <article key={task.id} className={`tasks-list-item${task.taskStatus === "COMPLETED" ? " is-completed" : ""}`}>
                       <div className="tasks-item-main">
                         {isEditing ? (
                           <div className="tasks-edit-form">
                             <div className="tasks-edit-grid">
                               <label className="label">
-                                Titulo
+                                Título
                                 <input
-                                  className="input"
+                                  className={`input${editFieldErrors.title ? " input-error" : ""}`}
                                   value={editDraft.title}
                                   onChange={(event) =>
                                     setEditDraft((current) =>
@@ -771,7 +917,9 @@ export default function TasksPage() {
                                         : current,
                                     )
                                   }
+                                  aria-invalid={Boolean(editFieldErrors.title)}
                                 />
+                                {editFieldErrors.title ? <span className="panel-subtitle form-error-text">{editFieldErrors.title}</span> : null}
                               </label>
 
                               <label className="label">
@@ -797,31 +945,34 @@ export default function TasksPage() {
 
                               <label className="label">
                                 Tag
-                                <select
-                                  className="input"
-                                  value={editDraft.tagId}
-                                  onChange={(event) =>
-                                    setEditDraft((current) =>
-                                      current
-                                        ? { ...current, tagId: event.target.value }
-                                        : current,
-                                    )
-                                  }
-                                >
-                                  <option value="">Sem tag</option>
-                                  {tags.map((item) => (
-                                    <option key={item.id} value={item.id}>
-                                      {item.name}
-                                    </option>
-                                  ))}
-                                </select>
+                                <div className="tasks-select-field">
+                                  <select
+                                    className="input tasks-select-input"
+                                    value={editDraft.tagId}
+                                    onChange={(event) =>
+                                      setEditDraft((current) =>
+                                        current
+                                          ? { ...current, tagId: event.target.value }
+                                          : current,
+                                      )
+                                    }
+                                  >
+                                    <option value="">Selecione uma tag (opcional)</option>
+                                    {tags.map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <ChevronDown size={16} />
+                                </div>
                               </label>
                             </div>
 
                             <label className="label">
-                              Descricao
+                              Descrição
                               <textarea
-                                className="textarea"
+                                className={`textarea tasks-description-textarea${editFieldErrors.description ? " input-error" : ""}`}
                                 value={editDraft.description}
                                 onChange={(event) =>
                                   setEditDraft((current) =>
@@ -831,13 +982,14 @@ export default function TasksPage() {
                                   )
                                 }
                               />
+                              {editFieldErrors.description ? <span className="panel-subtitle form-error-text">{editFieldErrors.description}</span> : null}
                             </label>
                           </div>
                         ) : (
                           <>
                             <div className="tasks-item-header">
                               <h3>{task.title}</h3>
-                              <span className="tasks-status-chip">{getStatusLabel(task.taskStatus)}</span>
+                              <span className={getStatusChipClass(task.taskStatus)}>{getStatusLabel(task.taskStatus)}</span>
                             </div>
                             <p>{task.description}</p>
                             <div className="tasks-item-meta">
@@ -848,8 +1000,8 @@ export default function TasksPage() {
                                 />
                                 {linkedTag?.name || "Sem tag"}
                               </span>
-                              <span className="profile-badge muted">
-                                Sincronizada
+                              <span className={`profile-badge muted tasks-sync-badge tasks-sync-badge-${task.syncStatus}`}>
+                                {getSyncStatusLabel(task.syncStatus)}
                               </span>
                             </div>
                           </>
@@ -870,8 +1022,9 @@ export default function TasksPage() {
                               type="button"
                               className="primary-button tasks-action-button"
                               onClick={() => handleSaveTask(task.id)}
+                              disabled={task.syncStatus === "pending"}
                             >
-                              <Save size={16} /> Salvar
+                              {task.syncStatus === "pending" ? <LoaderCircle size={16} className="button-spinner" /> : <Save size={16} />} Salvar
                             </button>
                           </>
                         ) : (
