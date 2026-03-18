@@ -49,7 +49,6 @@ class TagControllerIntegrationTest {
         dto.setName("Trabalho");
         dto.setColor("Vermelho");
 
-        // CREATE
         mockMvc.perform(post("/api/tags")
                 .with(user(user.getLogin()).roles("USER"))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -58,7 +57,6 @@ class TagControllerIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Trabalho"))
                 .andExpect(jsonPath("$.color").value("Vermelho"));
 
-        // LIST
         mockMvc.perform(get("/api/tags")
                 .with(user(user.getLogin()).roles("USER")))
                 .andExpect(status().isOk())

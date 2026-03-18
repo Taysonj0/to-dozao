@@ -94,7 +94,6 @@ const LoginPage: React.FC = () => {
 
   return (
     <AuthLayout activeItem="login">
-      {/* Cabeçalho */}
       <div style={{ marginBottom: "36px" }}>
         <p style={{ fontSize: "13px", color: "#5b9bd5", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>
           Bem-vindo de volta
@@ -107,9 +106,7 @@ const LoginPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Formulário */}
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-        {/* Campo usuário */}
         <div>
           <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "8px" }}>
             Nome de Usuário
@@ -164,7 +161,6 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Campo senha */}
         <div>
           <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "8px" }}>
             Senha
@@ -219,7 +215,6 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Lembrar-me */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <input
             type="checkbox"
@@ -234,7 +229,6 @@ const LoginPage: React.FC = () => {
           </label>
         </div>
 
-        {/* Botão entrar */}
         <button
           type="submit"
           disabled={isLoading || !formData.login || !formData.password}
@@ -284,7 +278,6 @@ const LoginPage: React.FC = () => {
         </button>
       </form>
 
-      {/* Divisor + criar conta */}
       <div style={{ marginTop: "28px", paddingTop: "24px", borderTop: "1px solid #eef1f6", textAlign: "center" }}>
         <p style={{ fontSize: "13px", color: "#8a9ab5", marginBottom: "12px" }}>
           Não tem uma conta?

@@ -154,7 +154,6 @@ const RegisterPage: React.FC = () => {
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        {/* Nome completo */}
         <div>
           <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "6px" }}>
             Nome Completo
@@ -209,7 +208,6 @@ const RegisterPage: React.FC = () => {
           </div>
         </div>
 
-        {/* E-mail */}
         <div>
           <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "6px" }}>
             E-mail
@@ -264,7 +262,6 @@ const RegisterPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Nome de usuário */}
         <div>
           <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "6px" }}>
             Nome de Usuário
@@ -319,7 +316,6 @@ const RegisterPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Senha e Confirmar senha lado a lado */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
           <div>
             <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "6px" }}>
@@ -432,7 +428,6 @@ const RegisterPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Termos */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
           <input
             type="checkbox"
@@ -448,7 +443,6 @@ const RegisterPage: React.FC = () => {
           </label>
         </div>
 
-        {/* Botão cadastrar */}
         <button
           type="submit"
           disabled={isLoading || !formData.name || !formData.email || !formData.login || !formData.password || !formData.confirmPassword}
@@ -495,7 +489,6 @@ const RegisterPage: React.FC = () => {
         </button>
       </form>
 
-      {/* Link para login */}
       <div style={{ marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #eef1f6", textAlign: "center" }}>
         <p style={{ fontSize: "13px", color: "#8a9ab5", marginBottom: "10px" }}>
           Já possui uma conta?

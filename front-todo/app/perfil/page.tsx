@@ -1,7 +1,5 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
-
 import AppShell from "@/components/AppShell";
 import {
   api,

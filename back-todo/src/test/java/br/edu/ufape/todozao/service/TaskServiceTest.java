@@ -96,8 +96,6 @@ class TaskServiceTest {
                 .build();
     }
 
-    // ===== VALIDATION TESTS =====
-
     @Test
     @DisplayName("Should validate TaskDTO with all valid fields")
     void shouldValidateValidTaskDTO() {
@@ -233,8 +231,6 @@ class TaskServiceTest {
         Set<ConstraintViolation<TaskDTO>> violations = validator.validate(taskDTO);
         assertTrue(violations.isEmpty(), "Should pass with null optional fields");
     }
-
-    // ===== SERVICE TESTS =====
 
     @Test
     @DisplayName("Should create task successfully with valid DTO")

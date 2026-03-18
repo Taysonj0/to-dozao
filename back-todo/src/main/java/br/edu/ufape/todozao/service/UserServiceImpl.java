@@ -190,7 +190,6 @@ public class UserServiceImpl implements UserService {
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException ignored) {
-            // Best-effort cleanup; avatar URL in the database is still updated.
         }
     }
 

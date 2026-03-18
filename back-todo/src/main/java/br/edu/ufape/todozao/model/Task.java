@@ -47,8 +47,6 @@ public class Task {
     @Column(name = "updated_at")
     private String updatedAt;
 
-    // RELACIONAMENTOS
-
     @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonBackReference
