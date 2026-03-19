@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FaLock, FaUser } from "react-icons/fa";
-import { api } from "../../app/services/api";
+import { api, clearSession, hasStoredToken } from "../../app/services/api";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import AuthLayout from "../../components/AuthLayout";
@@ -23,7 +23,17 @@ const LoginPage: React.FC = () => {
   });
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [sessionReady, setSessionReady] = useState<boolean>(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (hasStoredToken()) {
+      router.replace("/home");
+      return;
+    }
+
+    setSessionReady(true);
+  }, [router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,10 +44,16 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await api("/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ login: formData.login, password: formData.password }),
-      });
+     const response = await api("/auth/login", {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        login: formData.login,
+        password: formData.password,
+      }),
+    });
 
       if (!response.ok) {
         throw new Error("Falha na autenticacao");
@@ -49,6 +65,7 @@ const LoginPage: React.FC = () => {
         throw new Error("Token nao retornado pelo servidor");
       }
 
+      clearSession();
       localStorage.setItem("token", data.token);
       Swal.fire({
         toast: true,
@@ -67,9 +84,16 @@ const LoginPage: React.FC = () => {
     setIsLoading(false);
   };
 
+  if (!sessionReady) {
+    return (
+      <AuthLayout activeItem="login">
+        <p style={{ fontSize: "14px", color: "#8a9ab5" }}>Validando sua sessão...</p>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout activeItem="login">
-      {/* Cabeçalho */}
       <div style={{ marginBottom: "36px" }}>
         <p style={{ fontSize: "13px", color: "#5b9bd5", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>
           Bem-vindo de volta
@@ -82,9 +106,7 @@ const LoginPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Formulário */}
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-        {/* Campo usuário */}
         <div>
           <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "8px" }}>
             Nome de Usuário
@@ -139,7 +161,6 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Campo senha */}
         <div>
           <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#3d5270", marginBottom: "8px" }}>
             Senha
@@ -194,7 +215,6 @@ const LoginPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Lembrar-me */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <input
             type="checkbox"
@@ -209,7 +229,6 @@ const LoginPage: React.FC = () => {
           </label>
         </div>
 
-        {/* Botão entrar */}
         <button
           type="submit"
           disabled={isLoading || !formData.login || !formData.password}
@@ -259,7 +278,6 @@ const LoginPage: React.FC = () => {
         </button>
       </form>
 
-      {/* Divisor + criar conta */}
       <div style={{ marginTop: "28px", paddingTop: "24px", borderTop: "1px solid #eef1f6", textAlign: "center" }}>
         <p style={{ fontSize: "13px", color: "#8a9ab5", marginBottom: "12px" }}>
           Não tem uma conta?

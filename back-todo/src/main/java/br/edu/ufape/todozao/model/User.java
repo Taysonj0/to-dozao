@@ -57,6 +57,9 @@ public class User implements UserDetails {
     @Column(length = 120)
     private String location;
 
+    @Column(length = 600)
+    private String avatarUrl;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

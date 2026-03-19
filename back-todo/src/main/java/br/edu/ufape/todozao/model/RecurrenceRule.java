@@ -18,7 +18,7 @@ public class RecurrenceRule {
     private Long id;
 
     @Column(name = "recurrence_type")
-    private String recurrenceType; // diariamente, semanalmente ou mensalmente...
+    private String recurrenceType;
 
     @Min(value = 1, message = "O intervalo deve ser maior que zero")
     @NotNull(message = "O intervalo é obrigatório")

@@ -26,8 +26,6 @@ public class Project {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    // RELACIONAMENTOS
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;

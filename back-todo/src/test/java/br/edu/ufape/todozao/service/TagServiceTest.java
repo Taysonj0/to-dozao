@@ -1,5 +1,6 @@
 package br.edu.ufape.todozao.service;
 
+import br.edu.ufape.todozao.exception.TagAlreadyExistsException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -62,7 +63,7 @@ class TagServiceTest {
         when(tagRepository.existsByNameAndUserId("Estudo", 1L))
                 .thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(TagAlreadyExistsException.class, () ->
                 tagService.criarTag("Estudo", "Azul", user)
         );
     }

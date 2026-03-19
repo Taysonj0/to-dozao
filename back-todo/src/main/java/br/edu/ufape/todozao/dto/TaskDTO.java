@@ -24,6 +24,9 @@ public class TaskDTO {
     private String dueDate;
     private String type;
     private String resetRule;
+    private Long tagId;
+    private String tagName;
+    private String tagColor;
     private Long userId;
     private Long projectId;
 }
