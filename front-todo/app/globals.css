@@ -1351,6 +1351,7 @@ textarea {
   display: grid;
   gap: 8px;
   width: 100%;
+  min-width: 0;
   padding-block: 2px 4px;
 }
 
@@ -1366,6 +1367,8 @@ textarea {
   font-size: 1.05rem;
   color: #29486f;
   transition: color 0.24s ease, text-decoration-color 0.24s ease;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tasks-item-main p {
@@ -1374,6 +1377,8 @@ textarea {
   line-height: 1.5;
   transition: color 0.24s ease, text-decoration-color 0.24s ease;
   padding-bottom: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tasks-list-item.is-completed {
