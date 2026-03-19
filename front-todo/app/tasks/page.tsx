@@ -8,7 +8,6 @@ import {
   Filter,
   LoaderCircle,
   PencilLine,
-  Plus,
   Save,
   Tag,
   Tags,
@@ -66,6 +65,9 @@ type TaskDraft = {
   taskStatus: TaskStatusCode;
   tagId: string;
 };
+
+const TASK_TITLE_MAX_LENGTH = 255;
+const TASK_DESCRIPTION_MAX_LENGTH = 255;
 
 const statusOptions: Array<{ value: TaskStatusCode; label: string }> = [
   { value: "PENDING", label: "Pendente" },
@@ -261,6 +263,24 @@ function toTaskPayload(task: { title: string; description: string; taskStatus: T
   };
 }
 
+function validateTaskDraft(task: Pick<TaskDraft, "title" | "description">) {
+  const errors: Partial<Record<keyof TaskDraft, string>> = {};
+  const normalizedTitle = task.title.trim();
+  const normalizedDescription = task.description.trim();
+
+  if (!normalizedTitle) {
+    errors.title = "Informe um título válido para a task.";
+  } else if (normalizedTitle.length < 3 || normalizedTitle.length > TASK_TITLE_MAX_LENGTH) {
+    errors.title = `O título deve ter entre 3 e ${TASK_TITLE_MAX_LENGTH} caracteres.`;
+  }
+
+  if (normalizedDescription.length > TASK_DESCRIPTION_MAX_LENGTH) {
+    errors.description = `A descrição deve ter no máximo ${TASK_DESCRIPTION_MAX_LENGTH} caracteres.`;
+  }
+
+  return errors;
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
@@ -332,7 +352,7 @@ export default function TasksPage() {
 
   const tagMap = useMemo(() => buildTagMap(tags), [tags]);
   const completedCount = tasks.filter((task) => task.taskStatus === "COMPLETED").length;
-  const pendingCount = tasks.length - completedCount;
+  const openCount = tasks.filter((task) => task.taskStatus !== "COMPLETED" && task.taskStatus !== "CANCELLED").length;
   const filteredTasks = useMemo(
     () =>
       tasks.filter((task) => {
@@ -349,9 +369,11 @@ export default function TasksPage() {
   const handleCreateTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!title.trim()) {
-      setCreateFieldErrors({ title: "Informe um titulo valido para criar a task." });
-      setMessage("Informe um titulo antes de criar a task.");
+    const draftErrors = validateTaskDraft({ title, description });
+
+    if (Object.keys(draftErrors).length > 0) {
+      setCreateFieldErrors(draftErrors);
+      setMessage(draftErrors.title || draftErrors.description || "Revise os dados antes de criar a task.");
       return;
     }
 
@@ -446,9 +468,15 @@ export default function TasksPage() {
   };
 
   const handleSaveTask = async (taskId: number) => {
-    if (!editDraft || !editDraft.title.trim()) {
-      setEditFieldErrors({ title: "Informe um titulo valido para salvar a task." });
-      setMessage("Informe um titulo valido para salvar a task.");
+    if (!editDraft) {
+      return;
+    }
+
+    const draftErrors = validateTaskDraft(editDraft);
+
+    if (Object.keys(draftErrors).length > 0) {
+      setEditFieldErrors(draftErrors);
+      setMessage(draftErrors.title || draftErrors.description || "Revise os dados antes de salvar a task.");
       return;
     }
 
@@ -702,7 +730,7 @@ export default function TasksPage() {
 
             <div className="tasks-kpi-grid section-spacer">
               <div className="tasks-kpi-card">
-                <strong>{pendingCount}</strong>
+                <strong>{openCount}</strong>
                 <span>Em aberto</span>
               </div>
               <div className="tasks-kpi-card">
@@ -725,8 +753,8 @@ export default function TasksPage() {
                 <h3 className="panel-title">Organização por categoria</h3>
               </div>
 
-              <button type="button" className="ghost-button" onClick={handleOpenCreateTagModal}>
-                <Plus size={16} /> Nova tag
+              <button type="button" className="ghost-button tasks-secondary-action" onClick={handleOpenCreateTagModal}>
+                <Tags size={16} /> Criar tag
               </button>
             </div>
 
@@ -777,23 +805,28 @@ export default function TasksPage() {
                 <input
                   className={`input${createFieldErrors.title ? " input-error" : ""}`}
                   value={title}
+                  maxLength={TASK_TITLE_MAX_LENGTH}
                   onChange={(event) => {
-                    setTitle(event.target.value);
-                    if (createFieldErrors.title && event.target.value.trim()) {
+                    const nextValue = event.target.value.slice(0, TASK_TITLE_MAX_LENGTH);
+                    setTitle(nextValue);
+                    if (createFieldErrors.title || createFieldErrors.description) {
                       setCreateFieldErrors((current) => ({ ...current, title: undefined }));
                     }
                   }}
                   placeholder="Ex.: Revisar backlog da sprint"
                   aria-invalid={Boolean(createFieldErrors.title)}
                 />
-                {createFieldErrors.title ? <span className="panel-subtitle form-error-text">{createFieldErrors.title}</span> : null}
+                <div className="input-helper-row input-helper-row-compact">
+                  {createFieldErrors.title ? <span className="panel-subtitle form-error-text">{createFieldErrors.title}</span> : <span />}
+                  <span className="panel-subtitle profile-character-counter">{title.length}/{TASK_TITLE_MAX_LENGTH}</span>
+                </div>
               </label>
 
               <label className="label">
                 Tag
                 <div className="tasks-select-field">
                   <select
-                    className="input tasks-select-input"
+                    className={`input tasks-select-input${selectedTagId ? " is-filled" : " is-placeholder"}`}
                     value={selectedTagId}
                     onChange={(event) => setSelectedTagId(event.target.value)}
                   >
@@ -806,6 +839,9 @@ export default function TasksPage() {
                   </select>
                   <ChevronDown size={16} />
                 </div>
+                <div className="input-helper-row input-helper-row-compact">
+                  <span className="panel-subtitle profile-character-counter tasks-counter-placeholder" aria-hidden="true">0/255</span>
+                </div>
               </label>
             </div>
 
@@ -814,21 +850,22 @@ export default function TasksPage() {
               <textarea
                 className={`textarea tasks-description-textarea${createFieldErrors.description ? " input-error" : ""}`}
                 value={description}
+                maxLength={TASK_DESCRIPTION_MAX_LENGTH}
                 onChange={(event) => {
-                  setDescription(event.target.value);
+                  setDescription(event.target.value.slice(0, TASK_DESCRIPTION_MAX_LENGTH));
                   if (createFieldErrors.description) {
                     setCreateFieldErrors((current) => ({ ...current, description: undefined }));
                   }
                 }}
                 placeholder="Inclua contexto rapido para essa task."
               />
-              {createFieldErrors.description ? <span className="panel-subtitle form-error-text">{createFieldErrors.description}</span> : null}
+              <div className="input-helper-row">
+                {createFieldErrors.description ? <span className="panel-subtitle form-error-text">{createFieldErrors.description}</span> : <span />}
+                <span className="panel-subtitle profile-character-counter">{description.length}/{TASK_DESCRIPTION_MAX_LENGTH}</span>
+              </div>
             </label>
 
             <div className="tasks-form-actions">
-              <button type="button" className="ghost-button tasks-secondary-action" onClick={handleOpenCreateTagModal}>
-                <Tags size={16} /> Criar tag
-              </button>
               <button type="submit" className="primary-button" disabled={saveState === "saving"} aria-busy={saveState === "saving"}>
                 {saveState === "saving" ? (
                   <>
@@ -910,16 +947,20 @@ export default function TasksPage() {
                                 <input
                                   className={`input${editFieldErrors.title ? " input-error" : ""}`}
                                   value={editDraft.title}
+                                  maxLength={TASK_TITLE_MAX_LENGTH}
                                   onChange={(event) =>
                                     setEditDraft((current) =>
                                       current
-                                        ? { ...current, title: event.target.value }
+                                        ? { ...current, title: event.target.value.slice(0, TASK_TITLE_MAX_LENGTH) }
                                         : current,
                                     )
                                   }
                                   aria-invalid={Boolean(editFieldErrors.title)}
                                 />
-                                {editFieldErrors.title ? <span className="panel-subtitle form-error-text">{editFieldErrors.title}</span> : null}
+                                <div className="input-helper-row input-helper-row-compact">
+                                  {editFieldErrors.title ? <span className="panel-subtitle form-error-text">{editFieldErrors.title}</span> : <span />}
+                                  <span className="panel-subtitle profile-character-counter">{editDraft.title.length}/{TASK_TITLE_MAX_LENGTH}</span>
+                                </div>
                               </label>
 
                               <label className="label">
@@ -941,6 +982,9 @@ export default function TasksPage() {
                                     </option>
                                   ))}
                                 </select>
+                                <div className="input-helper-row input-helper-row-compact">
+                                  <span className="panel-subtitle profile-character-counter tasks-counter-placeholder" aria-hidden="true">0/255</span>
+                                </div>
                               </label>
 
                               <label className="label">
@@ -966,6 +1010,9 @@ export default function TasksPage() {
                                   </select>
                                   <ChevronDown size={16} />
                                 </div>
+                                <div className="input-helper-row input-helper-row-compact">
+                                  <span className="panel-subtitle profile-character-counter tasks-counter-placeholder" aria-hidden="true">0/255</span>
+                                </div>
                               </label>
                             </div>
 
@@ -974,15 +1021,19 @@ export default function TasksPage() {
                               <textarea
                                 className={`textarea tasks-description-textarea${editFieldErrors.description ? " input-error" : ""}`}
                                 value={editDraft.description}
+                                maxLength={TASK_DESCRIPTION_MAX_LENGTH}
                                 onChange={(event) =>
                                   setEditDraft((current) =>
                                     current
-                                      ? { ...current, description: event.target.value }
+                                      ? { ...current, description: event.target.value.slice(0, TASK_DESCRIPTION_MAX_LENGTH) }
                                       : current,
                                   )
                                 }
                               />
-                              {editFieldErrors.description ? <span className="panel-subtitle form-error-text">{editFieldErrors.description}</span> : null}
+                              <div className="input-helper-row">
+                                {editFieldErrors.description ? <span className="panel-subtitle form-error-text">{editFieldErrors.description}</span> : <span />}
+                                <span className="panel-subtitle profile-character-counter">{editDraft.description.length}/{TASK_DESCRIPTION_MAX_LENGTH}</span>
+                              </div>
                             </label>
                           </div>
                         ) : (

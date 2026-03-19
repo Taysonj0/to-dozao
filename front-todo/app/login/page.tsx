@@ -96,13 +96,13 @@ const LoginPage: React.FC = () => {
     <AuthLayout activeItem="login">
       <div style={{ marginBottom: "36px" }}>
         <p style={{ fontSize: "13px", color: "#5b9bd5", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>
-          Bem-vindo de volta
+          Bem-vindo de volta!
         </p>
         <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#1e3a5f", margin: 0, lineHeight: 1.2 }}>
-          Acesse sua conta
+          Entre para continuar sua jornada.
         </h1>
-        <p style={{ fontSize: "14px", color: "#8a9ab5", marginTop: "8px" }}>
-          Organize suas tarefas de forma simples e eficiente
+        <p style={{ fontSize: "14px", color: "#8a9ab5", marginTop: "8px", lineHeight: 1.7, maxWidth: "520px" }}>
+          Acesse sua conta para gerenciar suas tarefas, acompanhar seus projetos e manter sua rotina em dia. Tudo está exatamente como você deixou.
         </p>
       </div>
 
