@@ -12,7 +12,7 @@ public class TaskDTO {
     private Long id;
 
     @NotBlank(message = "O título é obrigatório.")
-    @Size(min = 3, max = 255, message = "O título deve ter entre 3 e 255 caracteres.")
+    @Size(min = 3, max = 50, message = "O título deve ter entre 3 e 50 caracteres.")
     private String title;
 
     @Size(max = 255, message = "A descrição deve ter no máximo 255 caracteres.")

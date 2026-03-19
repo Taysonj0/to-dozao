@@ -66,7 +66,7 @@ type TaskDraft = {
   tagId: string;
 };
 
-const TASK_TITLE_MAX_LENGTH = 255;
+const TASK_TITLE_MAX_LENGTH = 50;
 const TASK_DESCRIPTION_MAX_LENGTH = 255;
 
 const statusOptions: Array<{ value: TaskStatusCode; label: string }> = [
