@@ -1,0 +1,6 @@
+br\edu\ufape\todozao\TodozaoApplicationTests.class
+br\edu\ufape\todozao\model\TaskTest.class
+br\edu\ufape\todozao\repository\ProjectRepositoryTest.class
+br\edu\ufape\todozao\model\ProjectTest.class
+br\edu\ufape\todozao\model\UserTest.class
+br\edu\ufape\todozao\repository\NotificationRepositoryTest.class

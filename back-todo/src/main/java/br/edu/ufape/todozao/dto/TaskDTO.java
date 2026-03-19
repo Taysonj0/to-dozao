@@ -29,4 +29,5 @@ public class TaskDTO {
     private String tagColor;
     private Long userId;
     private Long projectId;
+
 }
