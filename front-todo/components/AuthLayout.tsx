@@ -1,10 +1,9 @@
-// components/AuthLayout.tsx
 import React from "react";
 import { useRouter } from "next/navigation";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
-  activeItem?: "login" | "register" | "terms"; // para destacar o item correto no menu
+  activeItem?: "login" | "register" | "terms";
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" }) => {
@@ -17,12 +16,11 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
     { id: "calendar", icon: "📅", label: "Calendar" },
   ];
 
-  // Mapeia activeItem para o índice do menu que deve ficar ativo
   const getActiveIndex = () => {
     switch (activeItem) {
-      case "login": return 0; // Dashboard ativo
-      case "register": return 1; // My Tasks ativo
-      case "terms": return 2; // Projects ativo
+      case "login": return 0;
+      case "register": return 1;
+      case "terms": return 2;
       default: return 0;
     }
   };
@@ -52,7 +50,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
           boxShadow: "0 25px 70px rgba(0,0,0,0.18)",
         }}
       >
-        {/* Coluna esquerda fixa */}
         <div
           style={{
             width: "360px",
@@ -66,7 +63,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
           }}
         >
           <div>
-            {/* Logo */}
             <div 
               style={{ 
                 display: "flex", 
@@ -96,10 +92,10 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
               </span>
             </div>
 
-            {/* Menu items */}
             {menuItems.map((item, i) => (
               <div
                 key={item.id}
+                aria-disabled="true"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -111,7 +107,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
                   opacity: i === activeIndex ? 1 : 0.45,
                   fontSize: "16px",
                   fontWeight: i === activeIndex ? 600 : 400,
-                  cursor: "default",
+                  cursor: "not-allowed",
                   userSelect: "none",
                 }}
               >
@@ -121,7 +117,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
             ))}
           </div>
 
-          {/* Stats decorativos */}
           <div
             style={{
               backgroundColor: "rgba(255,255,255,0.08)",
@@ -144,7 +139,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
           </div>
         </div>
 
-        {/* Coluna direita - conteúdo variável */}
         <div
           style={{
             flex: 1,
@@ -160,7 +154,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
         </div>
       </div>
 
-      {/* Rodapé fixo */}
       <p
         style={{
           position: "fixed",

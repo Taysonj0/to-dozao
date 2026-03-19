@@ -41,6 +41,30 @@ public class TagService {
     }
 
     @Transactional
+    public Tag atualizarTag(Long tagId, String name, String color, User user) {
+
+        Tag tag = tagRepository.findById(tagId)
+                .orElseThrow(TagNotFoundException::new);
+
+        if (!tag.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedTagAccessException();
+        }
+
+        boolean duplicada = tagRepository.findByNameAndUserId(name, user.getId())
+                .filter(existing -> !existing.getId().equals(tagId))
+                .isPresent();
+
+        if (duplicada) {
+            throw new TagAlreadyExistsException();
+        }
+
+        tag.setName(name);
+        tag.setColor(color);
+
+        return tagRepository.save(tag);
+    }
+
+    @Transactional
     public void deletarTag(Long tagId, User user) {
 
         Tag tag = tagRepository.findById(tagId)

@@ -20,8 +20,6 @@ public class WorkItem {
     @Column(name = "created_at")
     private String createdAt;
 
-    // RELACIONAMENTO COM TASK
-
     @ManyToOne
     @JoinColumn(name = "task_id")
     private Task task;

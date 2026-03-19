@@ -15,7 +15,6 @@ public class TaskHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Status da task no momento do registro
     @Enumerated(EnumType.STRING)
     private TaskStatus status;
 

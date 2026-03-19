@@ -5,9 +5,11 @@ import br.edu.ufape.todozao.dto.UserProfileUpdateDTO;
 import br.edu.ufape.todozao.model.User;
 import br.edu.ufape.todozao.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,6 +52,19 @@ public class UserController {
             @RequestBody @Valid UserProfileUpdateDTO profile
     ) {
         return ResponseEntity.ok(userService.atualizarPerfilAtual(authentication.getName(), profile));
+    }
+
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<UserProfileResponseDTO> atualizarMeuAvatar(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file
+    ) {
+        return ResponseEntity.ok(userService.atualizarAvatarAtual(authentication.getName(), file));
+    }
+
+    @DeleteMapping("/me/avatar")
+    public ResponseEntity<UserProfileResponseDTO> removerMeuAvatar(Authentication authentication) {
+        return ResponseEntity.ok(userService.removerAvatarAtual(authentication.getName()));
     }
 
     @GetMapping("/{id}/profile")

@@ -1,4 +1,3 @@
-// app/termos/page.tsx
 "use client";
 
 import React from "react";
@@ -11,7 +10,6 @@ const TermsPage: React.FC = () => {
 
   return (
     <AuthLayout activeItem="terms">
-      {/* Cabeçalho com botão voltar */}
       <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px", paddingBottom: "16px", borderBottom: "1px solid #eef1f6" }}>
         <button
           onClick={() => router.back()}
@@ -40,7 +38,6 @@ const TermsPage: React.FC = () => {
         </h1>
       </div>
 
-      {/* Conteúdo dos Termos */}
       <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
         
         <section>
@@ -151,7 +148,6 @@ const TermsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Botão de voltar */}
       <div style={{ marginTop: "24px", display: "flex", justifyContent: "center" }}>
         <button
           onClick={() => router.back()}

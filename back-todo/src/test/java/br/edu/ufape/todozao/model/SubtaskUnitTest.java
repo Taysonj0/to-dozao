@@ -44,7 +44,6 @@ class SubtaskUnitTest {
 
         violations = validator.validate(s2);
         assertTrue(violations.isEmpty());
-        // boolean primitive defaults to false when not set
         assertFalse(s2.isCompleted());
     }
 }
