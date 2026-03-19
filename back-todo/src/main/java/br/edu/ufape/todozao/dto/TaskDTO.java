@@ -26,4 +26,5 @@ public class TaskDTO {
     private String resetRule;
     private Long userId;
     private Long projectId;
+
 }
