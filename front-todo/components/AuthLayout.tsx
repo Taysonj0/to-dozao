@@ -8,24 +8,23 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" }) => {
   const router = useRouter();
-
-  const menuItems = [
-    { id: "dashboard", icon: "⊞", label: "Dashboard" },
-    { id: "tasks", icon: "✓", label: "My Tasks" },
-    { id: "projects", icon: "📁", label: "Projects" },
-    { id: "calendar", icon: "📅", label: "Calendar" },
-  ];
-
-  const getActiveIndex = () => {
-    switch (activeItem) {
-      case "login": return 0;
-      case "register": return 1;
-      case "terms": return 2;
-      default: return 0;
-    }
-  };
-
-  const activeIndex = getActiveIndex();
+  const heroCopy = {
+    login: {
+      eyebrow: "Bem-vindo de volta!",
+      title: "Entre para continuar sua jornada.",
+      description: "Acesse sua conta para gerenciar suas tarefas, acompanhar seus projetos e manter sua rotina em dia. Tudo está exatamente como você deixou.",
+    },
+    register: {
+      eyebrow: "Comece sua organização agora.",
+      title: "Crie seu espaço personalizado.",
+      description: "Cadastre-se para transformar sua produtividade. Tenha um painel exclusivo para suas tarefas reais, sem distrações e totalmente moldado ao seu jeito.",
+    },
+    terms: {
+      eyebrow: "Informações legais",
+      title: "Leia as condições antes de usar.",
+      description: "Os termos ficam acessíveis nesta área pública, separados do ambiente autenticado do sistema.",
+    },
+  }[activeItem];
 
   return (
     <div
@@ -91,30 +90,6 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
                 Todo-zão
               </span>
             </div>
-
-            {menuItems.map((item, i) => (
-              <div
-                key={item.id}
-                aria-disabled="true"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "14px",
-                  padding: "14px 18px",
-                  borderRadius: "10px",
-                  marginBottom: "6px",
-                  backgroundColor: i === activeIndex ? "rgba(255,255,255,0.15)" : "transparent",
-                  opacity: i === activeIndex ? 1 : 0.45,
-                  fontSize: "16px",
-                  fontWeight: i === activeIndex ? 600 : 400,
-                  cursor: "not-allowed",
-                  userSelect: "none",
-                }}
-              >
-                <span style={{ fontSize: "20px" }}>{item.icon}</span>
-                {item.label}
-              </div>
-            ))}
           </div>
 
           <div
@@ -125,17 +100,14 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, activeItem = "login" 
             }}
           >
             <p style={{ fontSize: "12px", opacity: 0.6, marginBottom: "12px", textTransform: "uppercase", letterSpacing: "0.8px" }}>
-              Resumo do Dia
+              {heroCopy.eyebrow}
             </p>
-            {[
-              { label: "Tarefas pendentes", value: "5" },
-              { label: "Concluídas", value: "12" },
-            ].map((s, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-                <span style={{ fontSize: "14px", opacity: 0.75 }}>{s.label}</span>
-                <span style={{ fontSize: "14px", fontWeight: 700, color: "#5b9bd5" }}>{s.value}</span>
-              </div>
-            ))}
+            <h2 style={{ fontSize: "30px", lineHeight: 1.12, margin: "0 0 14px", maxWidth: "260px" }}>
+              {heroCopy.title}
+            </h2>
+            <p style={{ fontSize: "15px", lineHeight: 1.7, opacity: 0.8, margin: 0, maxWidth: "270px" }}>
+              {heroCopy.description}
+            </p>
           </div>
         </div>
 

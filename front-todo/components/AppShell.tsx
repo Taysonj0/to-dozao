@@ -53,7 +53,6 @@ type RemoteTask = {
 
 const defaultNavItems = [
   { href: "/tasks", label: "My Tasks", icon: ListTodo },
-  { href: "/perfil", label: "Meu Perfil", icon: UserRound },
 ];
 
 const defaultProfile: ProfileData = {
@@ -291,7 +290,12 @@ export default function AppShell({
             </div>
 
             <div className="sidebar-footer">
-              <div className="sidebar-profile sidebar-profile-static">
+              <button
+                type="button"
+                className="sidebar-profile"
+                onClick={() => router.push("/perfil")}
+                aria-label="Abrir perfil"
+              >
                 <span className="sidebar-avatar">
                   {avatarUrl && !avatarImageFailed ? (
                     <img
@@ -308,7 +312,7 @@ export default function AppShell({
                   <strong>{profile.name}</strong>
                   <small>Perfil ativo</small>
                 </span>
-              </div>
+              </button>
             </div>
           </div>
         </aside>

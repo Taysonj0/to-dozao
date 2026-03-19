@@ -143,13 +143,13 @@ const RegisterPage: React.FC = () => {
     <AuthLayout activeItem="register">
       <div style={{ marginBottom: "32px" }}>
         <p style={{ fontSize: "13px", color: "#5b9bd5", fontWeight: 600, marginBottom: "8px", textTransform: "uppercase", letterSpacing: "1px" }}>
-          Comece agora
+          Comece sua organização agora.
         </p>
         <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#1e3a5f", margin: 0, lineHeight: 1.2 }}>
-          Criar nova conta
+          Crie seu espaço personalizado.
         </h1>
-        <p style={{ fontSize: "14px", color: "#8a9ab5", marginTop: "8px" }}>
-          Preencha os dados abaixo para se cadastrar
+        <p style={{ fontSize: "14px", color: "#8a9ab5", marginTop: "8px", lineHeight: 1.7, maxWidth: "560px" }}>
+          Cadastre-se para transformar sua produtividade. Tenha um painel exclusivo para suas tarefas reais, sem distrações e totalmente moldado ao seu jeito.
         </p>
       </div>
 

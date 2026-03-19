@@ -11,11 +11,11 @@ import lombok.*;
 public class TaskDTO {
     private Long id;
 
-    @NotBlank(message = "Title is required")
-    @Size(min = 3, max = 255, message = "Title must be between 3 and 255 characters")
+    @NotBlank(message = "O título é obrigatório.")
+    @Size(min = 3, max = 50, message = "O título deve ter entre 3 e 50 caracteres.")
     private String title;
 
-    @Size(max = 1000, message = "Description cannot exceed 1000 characters")
+    @Size(max = 255, message = "A descrição deve ter no máximo 255 caracteres.")
     private String description;
 
     private String color;
