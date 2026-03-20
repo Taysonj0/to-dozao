@@ -17,6 +17,8 @@ import {
   LogOut,
   ListTodo,
   UserRound,
+  ListTree,
+  Network,
 } from "lucide-react";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 
@@ -53,7 +55,7 @@ type RemoteTask = {
 
 const defaultNavItems = [
   { href: "/tasks", label: "Minhas tarefas", icon: ListTodo },
-  { href: "/projetos", label: "Projetos", icon: ListTodo },
+  { href: "/projetos", label: "Projetos", icon: Network },
   { href: "/perfil", label: "Meu Perfil", icon: UserRound },
 ];
 

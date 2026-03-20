@@ -971,6 +971,31 @@ export default function TasksPage() {
     setTagColor("#5b9bd5");
   };
 
+    const toggleDependencySelection = (
+    dependencyId: string,
+    mode: "create" | "edit",
+  ) => {
+    if (mode === "create") {
+      setSelectedDependencyIds((current) =>
+        current.includes(dependencyId)
+          ? current.filter((id) => id !== dependencyId)
+          : [...current, dependencyId],
+      );
+      return;
+    }
+
+    setEditDraft((current) =>
+      current
+        ? {
+            ...current,
+            dependencyIds: current.dependencyIds.includes(dependencyId)
+              ? current.dependencyIds.filter((id) => id !== dependencyId)
+              : [...current.dependencyIds, dependencyId],
+          }
+        : current,
+    );
+  };
+
   return (
     <AppShell
       title="My Tasks"
@@ -1135,28 +1160,69 @@ export default function TasksPage() {
               </label>
             </div>
 
-            <label className="label">
-              Depende de
-              <select
-                className="input"
-                multiple
-                size={Math.min(5, Math.max(3, tasks.length || 3))}
-                value={selectedDependencyIds}
-                onChange={(event) =>
-                  setSelectedDependencyIds(
-                    Array.from(event.target.selectedOptions, (option) => option.value),
-                  )
-                }
-              >
-                {tasks.map((task) => (
-                  <option key={task.id} value={String(task.id)}>
-                    {task.title}
-                  </option>
-                ))}
-              </select>
-              <span className="panel-subtitle">
-                Segure Ctrl (ou Cmd) para selecionar mais de uma task.
-              </span>
+                        <label className="label">
+              Dependências
+              <div className="tasks-dependency-picker">
+                <div className="tasks-dependency-picker-header">
+                  <span className="panel-subtitle">
+                    {selectedDependencyIds.length === 0
+                      ? "Nenhuma dependência selecionada."
+                      : `${selectedDependencyIds.length} dependência${selectedDependencyIds.length > 1 ? "s" : ""} selecionada${selectedDependencyIds.length > 1 ? "s" : ""}.`}
+                  </span>
+
+                  {selectedDependencyIds.length > 0 ? (
+                    <button
+                      type="button"
+                      className="ghost-button tasks-clear-dependencies-button"
+                      onClick={() => setSelectedDependencyIds([])}
+                    >
+                      Limpar
+                    </button>
+                  ) : null}
+                </div>
+
+                {tasks.length === 0 ? (
+                  <div className="tasks-dependency-empty">
+                    Nenhuma task disponível para usar como dependência.
+                  </div>
+                ) : (
+                  <div className="tasks-dependency-list">
+                    {tasks.map((task) => {
+                      const dependencyId = String(task.id);
+                      const isChecked =
+                        selectedDependencyIds.includes(dependencyId);
+
+                      return (
+                        <label
+                          key={task.id}
+                          className={`tasks-dependency-option${isChecked ? " is-selected" : ""}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() =>
+                              toggleDependencySelection(dependencyId, "create")
+                            }
+                          />
+                          <span className="tasks-dependency-checkbox" />
+                          <span className="tasks-dependency-content">
+                            <span className="tasks-dependency-title">
+                              {task.title}
+                            </span>
+                            <span className="tasks-dependency-meta">
+                              {getStatusLabel(task.taskStatus)}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <span className="panel-subtitle">
+                  Você pode criar a task sem dependências.
+                </span>
+              </div>
             </label>
 
             <label className="label">
@@ -1370,38 +1436,83 @@ export default function TasksPage() {
                               </label>
                             </div>
 
-                            <label className="label">
-                              Depende de
-                              <select
-                                className="input"
-                                multiple
-                                size={Math.min(5, Math.max(3, tasks.length || 3))}
-                                value={editDraft.dependencyIds}
-                                onChange={(event) =>
-                                  setEditDraft((current) =>
-                                    current
-                                      ? {
-                                          ...current,
-                                          dependencyIds: Array.from(
-                                            event.target.selectedOptions,
-                                            (option) => option.value,
-                                          ),
-                                        }
-                                      : current,
-                                  )
-                                }
-                              >
-                                {tasks
-                                  .filter((item) => item.id !== task.id)
-                                  .map((item) => (
-                                    <option key={item.id} value={String(item.id)}>
-                                      {item.title}
-                                    </option>
-                                  ))}
-                              </select>
-                              <span className="panel-subtitle">
-                                Segure Ctrl (ou Cmd) para selecionar mais de uma task.
-                              </span>
+                                                        <label className="label">
+                              Dependências
+                              <div className="tasks-dependency-picker">
+                                <div className="tasks-dependency-picker-header">
+                                  <span className="panel-subtitle">
+                                    {editDraft.dependencyIds.length === 0
+                                      ? "Nenhuma dependência selecionada."
+                                      : `${editDraft.dependencyIds.length} dependência${editDraft.dependencyIds.length > 1 ? "s" : ""} selecionada${editDraft.dependencyIds.length > 1 ? "s" : ""}.`}
+                                  </span>
+
+                                  {editDraft.dependencyIds.length > 0 ? (
+                                    <button
+                                      type="button"
+                                      className="ghost-button tasks-clear-dependencies-button"
+                                      onClick={() =>
+                                        setEditDraft((current) =>
+                                          current
+                                            ? { ...current, dependencyIds: [] }
+                                            : current,
+                                        )
+                                      }
+                                    >
+                                      Limpar
+                                    </button>
+                                  ) : null}
+                                </div>
+
+                                {tasks.filter((item) => item.id !== task.id).length ===
+                                0 ? (
+                                  <div className="tasks-dependency-empty">
+                                    Nenhuma task disponível para usar como dependência.
+                                  </div>
+                                ) : (
+                                  <div className="tasks-dependency-list">
+                                    {tasks
+                                      .filter((item) => item.id !== task.id)
+                                      .map((item) => {
+                                        const dependencyId = String(item.id);
+                                        const isChecked =
+                                          editDraft.dependencyIds.includes(
+                                            dependencyId,
+                                          );
+
+                                        return (
+                                          <label
+                                            key={item.id}
+                                            className={`tasks-dependency-option${isChecked ? " is-selected" : ""}`}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={isChecked}
+                                              onChange={() =>
+                                                toggleDependencySelection(
+                                                  dependencyId,
+                                                  "edit",
+                                                )
+                                              }
+                                            />
+                                            <span className="tasks-dependency-checkbox" />
+                                            <span className="tasks-dependency-content">
+                                              <span className="tasks-dependency-title">
+                                                {item.title}
+                                              </span>
+                                              <span className="tasks-dependency-meta">
+                                                {getStatusLabel(item.taskStatus)}
+                                              </span>
+                                            </span>
+                                          </label>
+                                        );
+                                      })}
+                                  </div>
+                                )}
+
+                                <span className="panel-subtitle">
+                                  Você pode salvar a task sem dependências.
+                                </span>
+                              </div>
                             </label>
 
                             <label className="label">

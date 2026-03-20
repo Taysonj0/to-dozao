@@ -41,6 +41,7 @@ export default function DependencyFlowNode({
           borderRadius: "999px",
           border: "2px solid #475569",
           background: "#ffffff",
+          zIndex: 4,
         }}
       />
 
@@ -54,6 +55,7 @@ export default function DependencyFlowNode({
           borderRadius: "999px",
           border: "2px solid #475569",
           background: "#ffffff",
+          zIndex: 4,
         }}
       />
 
