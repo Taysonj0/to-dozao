@@ -38,6 +38,13 @@ public class TaskDependencyService {
             );
         }
 
+        // EVITA CICLO SIMPLES
+        if (repository.existsByTaskIdAndDependsOnId(dependsOn.getId(), task.getId())) {
+            throw new InvalidTaskDependencyException(
+                    "Dependência circular detectada"
+            );
+        }
+
         return repository.save(
                 TaskDependency.builder()
                         .task(task)

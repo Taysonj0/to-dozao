@@ -1,5 +1,6 @@
 package br.edu.ufape.todozao.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,6 +19,7 @@ public class TaskDependency {
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "task_id")
+    @JsonBackReference
     private Task task;
 
     @ManyToOne(optional = false)

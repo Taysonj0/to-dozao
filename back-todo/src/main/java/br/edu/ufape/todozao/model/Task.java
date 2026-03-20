@@ -1,6 +1,7 @@
 package br.edu.ufape.todozao.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -66,6 +67,7 @@ public class Task {
     private List<TaskTag> taskTags;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<TaskDependency> dependencies;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)

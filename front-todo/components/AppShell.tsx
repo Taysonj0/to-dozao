@@ -53,6 +53,7 @@ type RemoteTask = {
 
 const defaultNavItems = [
   { href: "/tasks", label: "My Tasks", icon: ListTodo },
+  { href: "/tasks-tree", label: "Task Tree", icon: ListTodo }, // 🔥 novo
   { href: "/perfil", label: "Meu Perfil", icon: UserRound },
 ];
 

@@ -273,4 +273,8 @@ public class TaskService {
                 .projectId(task.getProject() != null ? task.getProject().getId() : null)
                 .build();
     }
+    public Task findEntityById(Long id) {
+        return taskRepository.findById(id)
+                .orElseThrow(() -> new TaskNotFoundException(id));
+    }
 }

@@ -1,15 +1,20 @@
 package br.edu.ufape.todozao.controller;
 
-import br.edu.ufape.todozao.dto.TaskDTO;
-import br.edu.ufape.todozao.model.TaskStatus;
-import br.edu.ufape.todozao.service.TaskService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.*;
 
 import java.util.List;
+
+import br.edu.ufape.todozao.dto.TaskDTO;
+import br.edu.ufape.todozao.dto.TaskDependencyCreateDTO;
+import br.edu.ufape.todozao.model.Task;
+import br.edu.ufape.todozao.model.TaskDependency;
+import br.edu.ufape.todozao.model.TaskStatus;
+import br.edu.ufape.todozao.service.TaskDependencyService;
+import br.edu.ufape.todozao.service.TaskService;
+
+import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -17,9 +22,12 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskDependencyService taskDependencyService;
 
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService,
+                          TaskDependencyService taskDependencyService) {
         this.taskService = taskService;
+        this.taskDependencyService = taskDependencyService;
     }
 
     @PostMapping
@@ -67,6 +75,31 @@ public class TaskController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id, Authentication authentication) {
         taskService.deleteTaskForUser(id, authentication.getName());
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/dependencies")
+    public ResponseEntity<List<TaskDependency>> getDependencies(@PathVariable Long id) {
+        List<TaskDependency> dependencies = taskDependencyService.listarPorTask(id);
+        return ResponseEntity.ok(dependencies);
+    }
+
+    @PostMapping("/{id}/dependencies")
+    public ResponseEntity<Void> addDependency(
+            @PathVariable Long id,
+            @RequestBody TaskDependencyCreateDTO dto) {
+
+        Task task = taskService.findEntityById(id);
+        Task dependsOn = taskService.findEntityById(dto.getDependsOnId());
+
+        taskDependencyService.adicionarDependencia(task, dependsOn);
+
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @DeleteMapping("/dependencies/{dependencyId}")
+    public ResponseEntity<Void> removeDependency(@PathVariable Long dependencyId) {
+        taskDependencyService.remover(dependencyId);
         return ResponseEntity.noContent().build();
     }
 }
