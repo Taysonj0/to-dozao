@@ -1,6 +1,7 @@
 package br.edu.ufape.todozao.controller;
 
 import br.edu.ufape.todozao.dto.TaskDependencyCreateDTO;
+import br.edu.ufape.todozao.dto.TaskDependencyResponseDTO;
 import br.edu.ufape.todozao.model.Task;
 import br.edu.ufape.todozao.model.TaskDependency;
 import br.edu.ufape.todozao.repository.TaskRepository;
@@ -18,6 +19,8 @@ import br.edu.ufape.todozao.dto.TaskDependencyCreateDTO;
 import br.edu.ufape.todozao.model.Task;
 import br.edu.ufape.todozao.service.TaskDependencyService;
 import br.edu.ufape.todozao.service.TaskService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/task-dependencies")
@@ -47,5 +50,22 @@ public class TaskDependencyController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remover(@PathVariable Long id) {
         service.remover(id);
+    }
+
+    @GetMapping("/task/{taskId}")
+    public ResponseEntity<List<TaskDependencyResponseDTO>> listarPorTask(@PathVariable Long taskId) {
+
+        List<TaskDependencyResponseDTO> response = service.listarPorTask(taskId)
+                .stream()
+                .map(dep -> {
+                    TaskDependencyResponseDTO dto = new TaskDependencyResponseDTO();
+                    dto.setId(dep.getId());
+                    dto.setTaskId(dep.getTask().getId());
+                    dto.setDependsOnId(dep.getDependsOn().getId());
+                    return dto;
+                })
+                .toList();
+
+        return ResponseEntity.ok(response);
     }
 }
