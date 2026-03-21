@@ -31,6 +31,10 @@ const defaultProfile: ProfileForm = {
   avatarUrl: "",
 };
 
+const MAX_NAME_LENGTH = 80;
+const MAX_EMAIL_LENGTH = 100;
+const MAX_LOCATION_LENGTH = 50;
+const MAX_HEADLINE_LENGTH = 120;
 const MAX_BIO_LENGTH = 300;
 
 type FeedbackTone = "neutral" | "success" | "error";
@@ -74,6 +78,10 @@ function getComparableProfile(form: ProfileForm) {
 
 function getTrimmedLength(value: string) {
   return value.trim().length;
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
 export default function PerfilPage() {
@@ -173,6 +181,10 @@ export default function PerfilPage() {
   }, []);
 
   const initials = useMemo(() => getInitials(form.name), [form.name]);
+  const nameLength = useMemo(() => getTrimmedLength(form.name), [form.name]);
+  const emailLength = useMemo(() => getTrimmedLength(form.email), [form.email]);
+  const locationLength = useMemo(() => getTrimmedLength(form.location), [form.location]);
+  const headlineLength = useMemo(() => getTrimmedLength(form.headline), [form.headline]);
   const bioLength = useMemo(() => getTrimmedLength(form.bio), [form.bio]);
   const avatarPreviewUrl = useMemo(() => resolveApiUrl(form.avatarUrl), [form.avatarUrl]);
   const hasChanges = useMemo(() => {
@@ -188,8 +200,8 @@ export default function PerfilPage() {
     form.headline ? `Apresentação: ${form.headline}` : "Adicione uma apresentação curta para destacar seu perfil.",
     form.location ? `Localização informada: ${form.location}` : "Informe sua localização para completar o perfil.",
     form.bio
-      ? `Bio preenchida com ${bioLength} caracteres.`
-      : "Escreva uma bio curta contando um pouco sobre você.",
+      ? `Biografia preenchida com ${bioLength} caracteres.`
+      : "Escreva uma biografia curta contando um pouco sobre você.",
   ];
 
   useEffect(() => {
@@ -333,6 +345,40 @@ export default function PerfilPage() {
       return;
     }
 
+    const trimmedName = form.name.trim();
+    const trimmedEmail = form.email.trim();
+    const trimmedLocation = form.location.trim();
+    const trimmedHeadline = form.headline.trim();
+    const nextErrors: Partial<Record<keyof Omit<ProfileForm, "id">, string>> = {};
+
+    if (!trimmedName) {
+      nextErrors.name = "Informe seu nome.";
+    } else if (trimmedName.length > MAX_NAME_LENGTH) {
+      nextErrors.name = `O nome deve ter no máximo ${MAX_NAME_LENGTH} caracteres.`;
+    }
+
+    if (!trimmedEmail) {
+      nextErrors.email = "Informe seu e-mail.";
+    } else if (!isValidEmail(trimmedEmail)) {
+      nextErrors.email = "Informe um e-mail válido.";
+    } else if (trimmedEmail.length > MAX_EMAIL_LENGTH) {
+      nextErrors.email = `O e-mail deve ter no máximo ${MAX_EMAIL_LENGTH} caracteres.`;
+    }
+
+    if (trimmedLocation.length > MAX_LOCATION_LENGTH) {
+      nextErrors.location = `A localização deve ter no máximo ${MAX_LOCATION_LENGTH} caracteres.`;
+    }
+
+    if (trimmedHeadline.length > MAX_HEADLINE_LENGTH) {
+      nextErrors.headline = `A apresentação deve ter no máximo ${MAX_HEADLINE_LENGTH} caracteres.`;
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFieldErrors(nextErrors);
+      showFeedback("Revise os campos destacados e tente novamente.", "error");
+      return;
+    }
+
     setSaveState("saving");
     setFieldErrors({});
 
@@ -340,11 +386,11 @@ export default function PerfilPage() {
       const response = await api("/users/me/profile", {
         method: "PUT",
         body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          headline: form.headline,
+          name: trimmedName,
+          email: trimmedEmail,
+          headline: trimmedHeadline,
           bio: form.bio,
-          location: form.location,
+          location: trimmedLocation,
         }),
       });
 
@@ -440,8 +486,8 @@ export default function PerfilPage() {
             </div>
 
             <div className="profile-bio-block">
-              <p className="eyebrow profile-eyebrow">Sobre você</p>
-              <p className="profile-bio-text">{form.bio || "Adicione uma bio curta para descrever esta conta."}</p>
+              <p className="eyebrow profile-eyebrow">Biografia</p>
+              <p className="profile-bio-text">{form.bio || "Adicione uma biografia curta para descrever esta conta."}</p>
             </div>
           </section>
 
@@ -489,15 +535,19 @@ export default function PerfilPage() {
                   className={`input${fieldErrors.name ? " input-error" : ""}`}
                   disabled={loading || saveState === "saving"}
                   value={form.name}
+                  maxLength={MAX_NAME_LENGTH}
                   onChange={(event) => {
-                    setForm((current) => ({ ...current, name: event.target.value }));
+                    setForm((current) => ({ ...current, name: event.target.value.slice(0, MAX_NAME_LENGTH) }));
                     if (fieldErrors.name) {
                       setFieldErrors((current) => ({ ...current, name: undefined }));
                     }
                   }}
                   aria-invalid={Boolean(fieldErrors.name)}
                 />
-                {fieldErrors.name ? <span className="panel-subtitle form-error-text">{fieldErrors.name}</span> : null}
+                <div className="input-helper-row input-helper-row-compact">
+                  {fieldErrors.name ? <span className="panel-subtitle form-error-text">{fieldErrors.name}</span> : <span />}
+                  <span className="panel-subtitle profile-character-counter">{nameLength}/{MAX_NAME_LENGTH}</span>
+                </div>
               </label>
 
               <label className="label">
@@ -507,15 +557,19 @@ export default function PerfilPage() {
                   type="email"
                   disabled={loading || saveState === "saving"}
                   value={form.email}
+                  maxLength={MAX_EMAIL_LENGTH}
                   onChange={(event) => {
-                    setForm((current) => ({ ...current, email: event.target.value }));
+                    setForm((current) => ({ ...current, email: event.target.value.slice(0, MAX_EMAIL_LENGTH) }));
                     if (fieldErrors.email) {
                       setFieldErrors((current) => ({ ...current, email: undefined }));
                     }
                   }}
                   aria-invalid={Boolean(fieldErrors.email)}
                 />
-                {fieldErrors.email ? <span className="panel-subtitle form-error-text">{fieldErrors.email}</span> : null}
+                <div className="input-helper-row input-helper-row-compact">
+                  {fieldErrors.email ? <span className="panel-subtitle form-error-text">{fieldErrors.email}</span> : <span />}
+                  <span className="panel-subtitle profile-character-counter">{emailLength}/{MAX_EMAIL_LENGTH}</span>
+                </div>
               </label>
 
               <label className="label">
@@ -524,8 +578,9 @@ export default function PerfilPage() {
                   className={`input${fieldErrors.location ? " input-error" : ""}`}
                   disabled={loading || saveState === "saving"}
                   value={form.location}
+                  maxLength={MAX_LOCATION_LENGTH}
                   onChange={(event) => {
-                    setForm((current) => ({ ...current, location: event.target.value }));
+                    setForm((current) => ({ ...current, location: event.target.value.slice(0, MAX_LOCATION_LENGTH) }));
                     if (fieldErrors.location) {
                       setFieldErrors((current) => ({ ...current, location: undefined }));
                     }
@@ -534,6 +589,7 @@ export default function PerfilPage() {
                 />
                 <div className="input-helper-row input-helper-row-compact">
                   {fieldErrors.location ? <span className="panel-subtitle form-error-text">{fieldErrors.location}</span> : <span />}
+                  <span className="panel-subtitle profile-character-counter">{locationLength}/{MAX_LOCATION_LENGTH}</span>
                 </div>
               </label>
 
@@ -543,8 +599,9 @@ export default function PerfilPage() {
                   className={`input${fieldErrors.headline ? " input-error" : ""}`}
                   disabled={loading || saveState === "saving"}
                   value={form.headline}
+                  maxLength={MAX_HEADLINE_LENGTH}
                   onChange={(event) => {
-                    setForm((current) => ({ ...current, headline: event.target.value }));
+                    setForm((current) => ({ ...current, headline: event.target.value.slice(0, MAX_HEADLINE_LENGTH) }));
                     if (fieldErrors.headline) {
                       setFieldErrors((current) => ({ ...current, headline: undefined }));
                     }
@@ -553,12 +610,13 @@ export default function PerfilPage() {
                 />
                 <div className="input-helper-row input-helper-row-compact">
                   {fieldErrors.headline ? <span className="panel-subtitle form-error-text">{fieldErrors.headline}</span> : <span />}
+                  <span className="panel-subtitle profile-character-counter">{headlineLength}/{MAX_HEADLINE_LENGTH}</span>
                 </div>
               </label>
             </div>
 
             <label className="label">
-              Sobre você
+              Biografia
               <textarea
                 className={`textarea${fieldErrors.bio ? " input-error" : ""}`}
                 disabled={loading || saveState === "saving"}

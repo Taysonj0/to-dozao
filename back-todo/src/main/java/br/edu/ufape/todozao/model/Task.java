@@ -22,8 +22,10 @@ public class Task {
     private Long id;
 
     @NotBlank
+    @Column(length = 255)
     private String title;
 
+    @Column(length = 255)
     private String description;
     private String color;
     private String priority;
